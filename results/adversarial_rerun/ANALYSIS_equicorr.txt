@@ -1,0 +1,88 @@
+====================================================================================
+ADVERSARIAL RE-ANALYSIS [equicorr]  -- signed DGP (rho = real cross-agent corr)
+modes=['iql', 'vdn']  rhos=[np.float64(-0.33), np.float64(-0.2), np.float64(-0.1), np.float64(0.0), np.float64(0.2), np.float64(0.4), np.float64(0.6), np.float64(0.8)]  sigmas=[np.float64(0.6), np.float64(1.0)]  reps=30-30
+====================================================================================
+
+### RAW gap: mean (SEM) by rho, per sigma x mode ###
+
+  sigma=0.6
+    rho:    -0.33  -0.20  -0.10  +0.00  +0.20  +0.40  +0.60  +0.80
+    iql  :  2.04   2.33   2.49   2.43   2.22   2.15   2.01   2.05
+    vdn  :  1.68   1.90   2.08   1.99   1.86   1.73   1.62   1.52
+
+  sigma=1.0
+    rho:    -0.33  -0.20  -0.10  +0.00  +0.20  +0.40  +0.60  +0.80
+    iql  :  4.32   4.25   4.00   3.99   3.60   3.21   3.32   3.21
+    vdn  :  3.59   3.55   3.30   3.39   2.95   2.63   2.69   2.33
+
+### NORMALIZED gap (/sigma): mean (SEM) by rho, per sigma x mode ###
+
+  sigma=0.6
+    rho:    -0.33  -0.20  -0.10  +0.00  +0.20  +0.40  +0.60  +0.80
+    iql  :  3.40   3.89   4.16   4.05   3.70   3.58   3.35   3.41
+    vdn  :  2.80   3.17   3.46   3.32   3.10   2.88   2.69   2.53
+
+  sigma=1.0
+    rho:    -0.33  -0.20  -0.10  +0.00  +0.20  +0.40  +0.60  +0.80
+    iql  :  4.32   4.25   4.00   3.99   3.60   3.21   3.32   3.21
+    vdn  :  3.59   3.55   3.30   3.39   2.95   2.63   2.69   2.33
+
+====================================================================================
+### HEADLINE: indifference (rho=0) vs genuine opposition (rho<0) ###
+====================================================================================
+
+  [IQL]  worst rho = -0.10   best rho = +0.80
+    gap_norm(rho=0,neutral)      = 4.016 (sd 1.575, n 60)
+    gap_norm(rho=-0.33,adversarial)= 3.863 (sd 1.662)
+    gap_norm(rho=+0.80,cooperative) = 3.309 (sd 2.244)
+    neutral - adversarial = +0.154  (Welch t=+0.52, p=6.04e-01; MWU p=4.97e-01)
+    neutral - cooperative = +0.707  (Welch t=+2.00, p=4.83e-02)
+    => FLAT between neutral & adversarial (no significant difference).
+
+  [VDN]  worst rho = -0.10   best rho = +0.80
+    gap_norm(rho=0,neutral)      = 3.355 (sd 1.382, n 60)
+    gap_norm(rho=-0.33,adversarial)= 3.196 (sd 1.425)
+    gap_norm(rho=+0.80,cooperative) = 2.431 (sd 1.759)
+    neutral - adversarial = +0.159  (Welch t=+0.62, p=5.37e-01; MWU p=4.64e-01)
+    neutral - cooperative = +0.924  (Welch t=+3.20, p=1.78e-03)
+    => FLAT between neutral & adversarial (no significant difference).
+
+====================================================================================
+### eta^2 (does SIGN of rho now matter, vs the old |alpha|-symmetry?) ###
+====================================================================================
+
+  [IQL] replication-level eta^2
+    effect                       RAW      NORM
+    C(rho)                    0.0295    0.0357
+    C(sigma)                  0.2351    0.0002
+    C(rho):C(sigma)           0.0146    0.0135
+    Residual                  0.7208    0.9506
+    R^2  signed-linear(rho)=0.0291   symmetric(|rho|)=0.0264   quad(rho+rho^2)=0.0293
+         => signed(monotone) explains 99% of the (quad) rho-variance  [linear slope=-0.755]
+         sign test |rho|=0.2: gap_norm(-0.2)=4.071 vs gap_norm(+0.2)=3.650  diff=-0.421 (t=+1.50, p=1.38e-01)  [symmetric]
+
+  [VDN] replication-level eta^2
+    effect                       RAW      NORM
+    C(rho)                    0.0469    0.0580
+    C(sigma)                  0.2245    0.0004
+    C(rho):C(sigma)           0.0174    0.0142
+    Residual                  0.7111    0.9274
+    R^2  signed-linear(rho)=0.0501   symmetric(|rho|)=0.0497   quad(rho+rho^2)=0.0530
+         => signed(monotone) explains 95% of the (quad) rho-variance  [linear slope=-0.838]
+         sign test |rho|=0.2: gap_norm(-0.2)=3.362 vs gap_norm(+0.2)=3.023  diff=-0.339 (t=+1.40, p=1.63e-01)  [symmetric]
+
+====================================================================================
+### VDN vs IQL: same shape over rho? (centralization effect) ###
+====================================================================================
+  rho=-0.33: IQL=3.863  VDN=3.196  IQL-VDN=+0.667 (t=+2.36, p=2.00e-02)
+  rho=-0.20: IQL=4.071  VDN=3.362  IQL-VDN=+0.709 (t=+2.41, p=1.75e-02)
+  rho=-0.10: IQL=4.077  VDN=3.380  IQL-VDN=+0.697 (t=+2.95, p=3.81e-03)
+  rho=+0.00: IQL=4.016  VDN=3.355  IQL-VDN=+0.661 (t=+2.45, p=1.60e-02)
+  rho=+0.20: IQL=3.650  VDN=3.023  IQL-VDN=+0.627 (t=+2.78, p=6.42e-03)
+  rho=+0.40: IQL=3.394  VDN=2.757  IQL-VDN=+0.637 (t=+2.74, p=7.15e-03)
+  rho=+0.60: IQL=3.336  VDN=2.690  IQL-VDN=+0.645 (t=+2.35, p=2.04e-02)
+  rho=+0.80: IQL=3.309  VDN=2.431  IQL-VDN=+0.878 (t=+2.39, p=1.87e-02)
+
+  IQL vs VDN gap-vs-rho SHAPE correlation = 0.976  (VDN preserves the shape)
+
+Saved gap_vs_rho_equicorr.png/.pdf

@@ -1,0 +1,66 @@
+================================================================================
+DELIVERABLE B: VDN (centralized) vs IQL (independent) -- U-shape over alpha
+modes=['iql', 'vdn'] alphas=[np.float64(-0.8), np.float64(-0.4), np.float64(0.0), np.float64(0.4), np.float64(0.8)] sigmas=[np.float64(0.2), np.float64(0.6), np.float64(1.0)] reps=30-30
+================================================================================
+
+### RAW gap: mean by alpha (rows), per sigma x mode ###
+
+  sigma=0.2
+    alpha:  -0.8  -0.4  +0.0  +0.4  +0.8
+    iql  : 0.448  0.426  0.785  0.446  0.467
+    vdn  : 0.312  0.338  0.657  0.344  0.317
+
+  sigma=0.6
+    alpha:  -0.8  -0.4  +0.0  +0.4  +0.8
+    iql  : 1.497  1.410  2.445  1.259  1.805
+    vdn  : 1.021  1.083  2.033  0.989  1.268
+
+  sigma=1.0
+    alpha:  -0.8  -0.4  +0.0  +0.4  +0.8
+    iql  : 2.433  2.032  3.822  2.228  2.299
+    vdn  : 1.822  1.629  3.273  1.809  1.570
+
+### NORMALIZED gap (/sigma): mean by alpha (rows), per sigma x mode ###
+
+  sigma=0.2
+    alpha:  -0.8  -0.4  +0.0  +0.4  +0.8
+    iql  : 2.241  2.132  3.926  2.231  2.333
+    vdn  : 1.562  1.689  3.286  1.720  1.587
+
+  sigma=0.6
+    alpha:  -0.8  -0.4  +0.0  +0.4  +0.8
+    iql  : 2.495  2.350  4.076  2.099  3.009
+    vdn  : 1.702  1.806  3.388  1.648  2.114
+
+  sigma=1.0
+    alpha:  -0.8  -0.4  +0.0  +0.4  +0.8
+    iql  : 2.433  2.032  3.822  2.228  2.299
+    vdn  : 1.822  1.629  3.273  1.809  1.570
+
+### U-shape diagnostics (normalized gap) ###
+  U-depth = gap(a=0) - mean(gap(a=-0.8), gap(a=+0.8)); >0 => U (mid worst)
+  iql   sigma=0.2: U-depth=+1.639  worst_alpha=+0.0  (+0.8 vs -0.8 diff=+0.092)
+  iql   sigma=0.6: U-depth=+1.324  worst_alpha=+0.0  (+0.8 vs -0.8 diff=+0.514)
+  iql   sigma=1.0: U-depth=+1.456  worst_alpha=+0.0  (+0.8 vs -0.8 diff=-0.133)
+  vdn   sigma=0.2: U-depth=+1.711  worst_alpha=+0.0  (+0.8 vs -0.8 diff=+0.026)
+  vdn   sigma=0.6: U-depth=+1.480  worst_alpha=+0.0  (+0.8 vs -0.8 diff=+0.412)
+  vdn   sigma=1.0: U-depth=+1.577  worst_alpha=+0.0  (+0.8 vs -0.8 diff=-0.251)
+
+### Centralization effect: IQL gap - VDN gap (positive => VDN coordinates better) ###
+    (normalized gap, pooled over sigma)
+  alpha=-0.8: IQL=2.390  VDN=1.695  IQL-VDN=+0.695  (Welch t=+3.12, p=0.00214)
+  alpha=-0.4: IQL=2.171  VDN=1.708  IQL-VDN=+0.463  (Welch t=+4.83, p=2.97e-06)
+  alpha=+0.0: IQL=3.941  VDN=3.316  IQL-VDN=+0.626  (Welch t=+2.82, p=0.00533)
+  alpha=+0.4: IQL=2.186  VDN=1.726  IQL-VDN=+0.460  (Welch t=+4.63, p=7.18e-06)
+  alpha=+0.8: IQL=2.547  VDN=1.757  IQL-VDN=+0.790  (Welch t=+3.53, p=0.000539)
+
+  Centralization benefit at alpha=0 : +nan
+  Centralization benefit at |alpha|=0.8: +nan
+  => differential (mid - extremes) = +nan  (VDN helps extremes more)
+
+### VERDICT ###
+  mean U-depth  IQL=+1.473  VDN=+1.589
+  U-shape PRESERVED under centralized training (alpha=0 still worst).
+  U-depth retained fraction = 108% of IQL's.
+
+  Saved plot: b_ushape_iql_vs_vdn.png/.pdf

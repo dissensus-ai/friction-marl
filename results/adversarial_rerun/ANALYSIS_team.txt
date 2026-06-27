@@ -1,0 +1,22 @@
+================================================================================
+TEAM (STRONG-OPPOSITION) ROBUSTNESS  -- between-team corr = -opp^2 (down to -1)
+================================================================================
+
+  opp:           0.00  0.30  0.50  0.70  0.85  1.00
+  between_corr:  -0.00  -0.09  -0.25  -0.49  -0.72  -1.00
+  gap [iql]:     3.43  3.94  3.86  3.85  4.38  4.54
+  gap [vdn]:     2.84  3.37  3.14  3.01  3.22  3.03
+
+  HEADLINE: does STRONG opposition beat indifference (opp=0)?
+
+  [IQL] indifference gap(opp=0)=3.434  strong-opp gap(opp=1)=4.541  diff=+1.107
+        Welch t=-1.79 p=8.13e-02  MWU p=3.11e-01  worst_opp=1.00
+        gap~opp linear slope=+0.979 (r=+0.15, p_trend=4.80e-02)
+        => no significant difference between strong opposition and indifference.
+
+  [VDN] indifference gap(opp=0)=2.838  strong-opp gap(opp=1)=3.027  diff=+0.189
+        Welch t=-0.49 p=6.30e-01  MWU p=9.12e-01  worst_opp=0.30
+        gap~opp linear slope=+0.097 (r=+0.02, p_trend=7.75e-01)
+        => no significant difference between strong opposition and indifference.
+
+  Saved gap_vs_opposition_team.png + headline_team.csv
