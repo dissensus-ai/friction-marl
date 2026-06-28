@@ -1,0 +1,73 @@
+######################################################################################
+# PARTIAL-SHARING CONTROL -- does the alignment-gap slope scale with overlap w?
+######################################################################################
+
+overlap levels k=[np.int64(0), np.int64(1), np.int64(2), np.int64(3)]  ->  w=[np.float64(0.0), np.float64(0.333), np.float64(0.667), np.float64(1.0)]   (w = k / 3 resources)
+rhos=[np.float64(-0.33), np.float64(-0.2), np.float64(-0.1), np.float64(0.0), np.float64(0.2), np.float64(0.4), np.float64(0.6), np.float64(0.8)]   sigmas=[np.float64(0.6), np.float64(1.0)]   modes=['iql', 'vdn']
+reps/cond=30-30   (epsilon=[np.float64(0.0)])
+
+--- normalized gap dR/sigma vs rho, by overlap w (pooled over sigma) ---
+
+  [IQL]  w \ rho :  -0.33  -0.20  -0.10  +0.00  +0.20  +0.40  +0.60  +0.80
+           w=0.00 :   3.90   3.95   3.94   4.10   3.48   3.98   3.87   3.97
+           w=0.33 :   4.14   4.33   3.90   4.18   3.96   4.05   3.88   4.00
+           w=0.67 :   3.85   3.91   3.94   3.82   3.52   3.33   3.36   3.38
+           w=1.00 :   4.29   4.56   3.93   4.24   4.11   3.70   3.67   3.60
+
+  [VDN]  w \ rho :  -0.33  -0.20  -0.10  +0.00  +0.20  +0.40  +0.60  +0.80
+           w=0.00 :   4.02   4.12   4.11   4.21   3.65   4.10   3.97   4.08
+           w=0.33 :   4.09   4.29   3.80   4.12   3.91   3.95   3.80   3.91
+           w=0.67 :   3.52   3.62   3.63   3.56   3.29   3.03   3.09   3.01
+           w=1.00 :   3.49   3.80   3.27   3.49   3.40   3.03   2.91   2.79
+
+======================================================================================
+SANITY GATE -- new runner endpoints must reproduce the pre-existing reference runs
+======================================================================================
+
+  [IQL]
+    w=0 (separable)  : my slope=-0.022 [CI -0.354,+0.310] p=8.98e-01   |  ref(separable)=-0.029 [CI -0.361,+0.304]   -> FLAT&match: True
+    w=1 (full share) : my slope=-0.741 [CI -1.176,-0.307] p=8.54e-04   |  ref(equicorr)=-0.755 [CI -1.147,-0.363]   -> SLOPED&match: True
+
+  [VDN]
+    w=0 (separable)  : my slope=-0.066 [CI -0.404,+0.272] p=7.01e-01   |  ref(separable)=-0.053 [CI -0.395,+0.289]   -> FLAT&match: True
+    w=1 (full share) : my slope=-0.755 [CI -1.120,-0.391] p=5.51e-05   |  ref(equicorr)=-0.838 [CI -1.166,-0.510]   -> SLOPED&match: True
+
+  GATE PASSED -> endpoints reproduce; the middle overlap levels can be trusted.
+
+======================================================================================
+SLOPE of gap_norm vs rho, per overlap level w  (the headline relationship)
+======================================================================================
+
+  [IQL]   w     k   slope    se      95% CI            p        R^2
+        0.000  0  -0.022  0.169  [-0.354,+0.310]  8.98e-01  0.000
+        0.333  1  -0.210  0.199  [-0.602,+0.182]  2.94e-01  0.002
+        0.667  2  -0.602  0.180  [-0.956,-0.247]  9.18e-04  0.023
+        1.000  3  -0.741  0.221  [-1.176,-0.307]  8.54e-04  0.023
+      |slope| monotonically non-decreasing in w: True    (signed slope monotonically non-increasing: True)
+      Spearman(w, signed slope) = -1.000 (p=0.000); Spearman(w, |slope|) = +1.000 (p=0.000)
+
+  [VDN]   w     k   slope    se      95% CI            p        R^2
+        0.000  0  -0.066  0.172  [-0.404,+0.272]  7.01e-01  0.000
+        0.333  1  -0.244  0.193  [-0.622,+0.135]  2.06e-01  0.003
+        0.667  2  -0.614  0.164  [-0.936,-0.293]  1.97e-04  0.029
+        1.000  3  -0.755  0.186  [-1.120,-0.391]  5.51e-05  0.033
+      |slope| monotonically non-decreasing in w: True    (signed slope monotonically non-increasing: True)
+      Spearman(w, signed slope) = -1.000 (p=0.000); Spearman(w, |slope|) = +1.000 (p=0.000)
+
+======================================================================================
+INTERACTION TEST -- gap_norm ~ rho * w  (rho:w coeff = contention-degree mediation)
+======================================================================================
+
+  [IQL]  n=1920
+    slope at w=0 (coef 'rho')           = -0.011
+    rho:w interaction (slope change/Δw) = -0.765  [95% CI -1.276, -0.254]  p=3.355e-03
+    => implied slope at w=1             = -0.776
+    VERDICT [IQL]: MEDIATES: slope becomes significantly MORE NEGATIVE as overlap rises
+
+  [VDN]  n=1920
+    slope at w=0 (coef 'rho')           = -0.054
+    rho:w interaction (slope change/Δw) = -0.731  [95% CI -1.203, -0.259]  p=2.403e-03
+    => implied slope at w=1             = -0.786
+    VERDICT [VDN]: MEDIATES: slope becomes significantly MORE NEGATIVE as overlap rises
+
+Saved: gap_vs_rho_by_overlap.{png,pdf}, slope_vs_overlap.{png,pdf}, slope_vs_overlap.csv, interaction_test.csv, sanity_gate.csv

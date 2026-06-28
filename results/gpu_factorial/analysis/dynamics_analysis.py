@@ -132,7 +132,7 @@ for alpha in [-0.8, -0.4, 0.0, 0.4, 0.8]:
 
 ax.set_xlabel("Episode")
 ax.set_ylabel("Mean Reward (per step)")
-ax.set_title(r"Learning Curves at Low Noise ($\sigma=0.2$, $\varepsilon=0.5$)")
+ax.set_title(r"Learning Curves at Low Stakes ($\sigma=0.2$, $\varepsilon=0.5$)")
 ax.legend(loc="lower right")
 ax.grid(True, alpha=0.3)
 savefig(fig, "fig1b_learning_curves_low_noise")
@@ -149,7 +149,7 @@ for alpha in [-0.8, -0.4, 0.0, 0.4, 0.8]:
 
 ax.set_xlabel("Episode")
 ax.set_ylabel("Mean Reward (per step)")
-ax.set_title(r"Learning Curves at High Noise ($\sigma=1.0$, $\varepsilon=0.5$)")
+ax.set_title(r"Learning Curves at High Stakes ($\sigma=1.0$, $\varepsilon=0.5$)")
 ax.legend(loc="lower right")
 ax.grid(True, alpha=0.3)
 savefig(fig, "fig1c_learning_curves_high_noise")
@@ -250,7 +250,7 @@ ax1.set_xticks(range(5))
 ax1.set_xticklabels([f"{a:.1f}" for a in stab_alpha['alpha']])
 ax1.set_xlabel(r"$\alpha$")
 ax1.set_ylabel("Std of Reward (Last 250 Episodes)")
-ax1.set_title("Learning Stability by Friction Level")
+ax1.set_title("Learning Stability by Alignment Level")
 ax1.grid(True, alpha=0.3)
 
 # By sigma
@@ -414,7 +414,7 @@ for alpha in sorted(meta_df['alpha'].unique()):
                alpha=0.3, s=8, edgecolors='none')
 ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]:.1%})")
 ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]:.1%})")
-ax.set_title("Policy Space (PCA) — Colored by Friction Level")
+ax.set_title("Policy Space (PCA) — Colored by Alignment Level")
 ax.legend(fontsize=7, markerscale=3)
 ax.grid(True, alpha=0.2)
 
@@ -457,7 +457,7 @@ for alpha in sorted(sub_meta['alpha'].unique()):
                alpha=0.4, s=15, edgecolors='none')
 ax.set_xlabel("t-SNE 1")
 ax.set_ylabel("t-SNE 2")
-ax.set_title("Policy Space (t-SNE) — Colored by Friction Level")
+ax.set_title("Policy Space (t-SNE) — Colored by Alignment Level")
 ax.legend(fontsize=7, markerscale=2)
 
 ax = axes[1]
@@ -522,7 +522,7 @@ cluster_comp.plot(kind='bar', stacked=True, ax=ax,
                   color=[ALPHA_COLORS[a] for a in sorted(meta_df['alpha'].unique())])
 ax.set_xlabel("Policy Cluster")
 ax.set_ylabel("Proportion")
-ax.set_title("Cluster Composition by Friction Level")
+ax.set_title("Cluster Composition by Alignment Level")
 ax.legend(title=r"$\alpha$", labels=[f"{a:.1f}" for a in sorted(meta_df['alpha'].unique())])
 ax.grid(True, alpha=0.2, axis='y')
 savefig(fig, "fig3d_cluster_composition")
@@ -566,7 +566,7 @@ ax1.set_xticks(range(5))
 ax1.set_xticklabels([f"{a:.1f}" for a in sorted(df['alpha'].unique())])
 ax1.set_xlabel(r"$\alpha$ (friction)")
 ax1.set_ylabel("Agent Reward Variance")
-ax1.set_title("Agent Reward Inequality by Friction Level")
+ax1.set_title("Agent Reward Inequality by Alignment Level")
 ax1.grid(True, alpha=0.3)
 
 # Fig 4a right: Gini vs alpha
@@ -580,7 +580,7 @@ ax2.set_xticks(range(5))
 ax2.set_xticklabels([f"{a:.1f}" for a in sorted(df['alpha'].unique())])
 ax2.set_xlabel(r"$\alpha$ (friction)")
 ax2.set_ylabel("Gini Coefficient")
-ax2.set_title("Agent Reward Gini by Friction Level")
+ax2.set_title("Agent Reward Gini by Alignment Level")
 ax2.grid(True, alpha=0.3)
 
 fig.tight_layout()
@@ -613,12 +613,12 @@ savefig(fig, "fig4b_specialization_heatmap")
 # Fig 4c: Individual agent rewards for specific conditions
 fig, axes = plt.subplots(2, 3, figsize=(15, 9))
 conditions = [
-    (-0.8, 0.2, 0.5, "Cooperative, Low Noise"),
+    (-0.8, 0.2, 0.5, "Cooperative, Low Stakes"),
     (0.0, 0.6, 0.5, "Neutral, Medium Noise"),
-    (0.8, 0.2, 0.5, "Adversarial, Low Noise"),
-    (-0.8, 1.0, 0.5, "Cooperative, High Noise"),
-    (0.0, 1.0, 0.5, "Neutral, High Noise"),
-    (0.8, 1.0, 0.5, "Adversarial, High Noise"),
+    (0.8, 0.2, 0.5, "Adversarial, Low Stakes"),
+    (-0.8, 1.0, 0.5, "Cooperative, High Stakes"),
+    (0.0, 1.0, 0.5, "Neutral, High Stakes"),
+    (0.8, 1.0, 0.5, "Adversarial, High Stakes"),
 ]
 
 agent_colors = ["#4477AA", "#EE6677", "#228833", "#CCBB44"]
@@ -733,12 +733,12 @@ print("  Analyzing oscillation patterns...")
 fig, axes = plt.subplots(2, 3, figsize=(15, 9))
 
 interesting_conditions = [
-    (-0.8, 0.2, 0.5, "Cooperative, Low Noise"),
+    (-0.8, 0.2, 0.5, "Cooperative, Low Stakes"),
     (0.0, 0.6, 0.5, "Neutral, Medium Noise"),
-    (0.8, 0.2, 0.5, "Adversarial, Low Noise"),
-    (-0.8, 1.0, 1.0, "Cooperative, High Noise, High Obs Noise"),
-    (0.0, 1.0, 0.0, "Neutral, High Noise, No Obs Noise"),
-    (0.8, 1.0, 1.0, "Adversarial, High Noise, High Obs Noise"),
+    (0.8, 0.2, 0.5, "Adversarial, Low Stakes"),
+    (-0.8, 1.0, 1.0, "Cooperative, High Stakes, High Obs Noise"),
+    (0.0, 1.0, 0.0, "Neutral, High Stakes, No Obs Noise"),
+    (0.8, 1.0, 1.0, "Adversarial, High Stakes, High Obs Noise"),
 ]
 
 for idx, (alpha, sigma, eps, title) in enumerate(interesting_conditions):

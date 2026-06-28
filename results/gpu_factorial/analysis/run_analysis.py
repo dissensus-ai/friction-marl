@@ -155,7 +155,7 @@ print('\n' + '='*70)
 print('2. MAIN EFFECTS')
 print('='*70)
 
-params = {'alpha': r'$\alpha$ (Friction)', 'sigma': r'$\sigma$ (Noise)', 'epsilon': r'$\varepsilon$ (Exploration)'}
+params = {'alpha': r'$\alpha$ (Alignment)', 'sigma': r'$\sigma$ (Stakes)', 'epsilon': r'$\varepsilon$ (Entropy / Obs. Noise)'}
 
 fig, axes = plt.subplots(2, 3, figsize=(14, 8))
 
@@ -198,9 +198,9 @@ print('3. PAIRWISE INTERACTION HEATMAPS')
 print('='*70)
 
 interactions = [
-    ('alpha', 'sigma', r'$\alpha$ (Friction)', r'$\sigma$ (Noise)'),
-    ('alpha', 'epsilon', r'$\alpha$ (Friction)', r'$\varepsilon$ (Exploration)'),
-    ('sigma', 'epsilon', r'$\sigma$ (Noise)', r'$\varepsilon$ (Exploration)'),
+    ('alpha', 'sigma', r'$\alpha$ (Alignment)', r'$\sigma$ (Stakes)'),
+    ('alpha', 'epsilon', r'$\alpha$ (Alignment)', r'$\varepsilon$ (Entropy / Obs. Noise)'),
+    ('sigma', 'epsilon', r'$\sigma$ (Stakes)', r'$\varepsilon$ (Entropy / Obs. Noise)'),
 ]
 
 for outcome, outcome_label, cmap_name, fignum in [
@@ -262,8 +262,8 @@ for i, (eps, pivot) in enumerate(zip(epsilon_levels, all_pivots)):
                 cbar_kws={'label': 'Mean Reward', 'shrink': 0.8} if i == 4 else {},
                 annot_kws={'size': 8})
     axes[i].set_title(f'$\\varepsilon$ = {eps}')
-    axes[i].set_xlabel(r'$\sigma$ (Noise)')
-    axes[i].set_ylabel(r'$\alpha$ (Friction)' if i == 0 else '')
+    axes[i].set_xlabel(r'$\sigma$ (Stakes)')
+    axes[i].set_ylabel(r'$\alpha$ (Alignment)' if i == 0 else '')
     axes[i].invert_yaxis()
 
 fig.suptitle(r'Three-Way Interaction: $\alpha \times \sigma$ conditioned on $\varepsilon$',
@@ -304,9 +304,9 @@ sems = gini_by_alpha.sem()
 ax.errorbar(means.index, means.values, yerr=1.96*sems.values,
             fmt='o-', color=BURGUNDY, capsize=5, capthick=1.5,
             markersize=8, linewidth=2, markeredgecolor='white')
-ax.set_xlabel(r'$\alpha$ (Friction)')
+ax.set_xlabel(r'$\alpha$ (Alignment)')
 ax.set_ylabel('Gini Coefficient')
-ax.set_title('Agent Reward Inequality vs. Friction')
+ax.set_title('Agent Reward Inequality vs. Alignment')
 ax.grid(True, alpha=0.3)
 save_fig(fig, 'fig05a_gini_vs_alpha')
 
@@ -320,8 +320,8 @@ sns.heatmap(gini_pivot, annot=True, fmt='.4f', cmap='YlOrRd',
             ax=ax, linewidths=0.5, linecolor='white',
             cbar_kws={'label': 'Gini Coefficient', 'shrink': 0.8},
             annot_kws={'size': 10})
-ax.set_xlabel(r'$\sigma$ (Noise)')
-ax.set_ylabel(r'$\alpha$ (Friction)')
+ax.set_xlabel(r'$\sigma$ (Stakes)')
+ax.set_ylabel(r'$\alpha$ (Alignment)')
 ax.set_title(r'Agent Inequality: $\alpha \times \sigma$')
 ax.invert_yaxis()
 save_fig(fig, 'fig05b_gini_heatmap_alpha_sigma')
@@ -337,9 +337,9 @@ for sig, color in zip(sigma_levels, colors):
     ax.errorbar(means.index, means.values, yerr=1.96*sems.values,
                 fmt='o-', color=color, capsize=3, markersize=5, linewidth=1.5,
                 label=f'$\\sigma$={sig}')
-ax.set_xlabel(r'$\alpha$ (Friction)')
+ax.set_xlabel(r'$\alpha$ (Alignment)')
 ax.set_ylabel('Gini Coefficient')
-ax.set_title('Agent Inequality: Friction x Noise Interaction')
+ax.set_title('Agent Inequality: Alignment x Stakes Interaction')
 ax.legend(frameon=True, facecolor='white')
 ax.grid(True, alpha=0.3)
 save_fig(fig, 'fig05c_gini_alpha_by_sigma')
@@ -433,8 +433,8 @@ sns.heatmap(conv_pivot, annot=True, fmt='.2f', cmap='RdYlGn',
             ax=ax, linewidths=0.5, linecolor='white',
             cbar_kws={'label': 'Convergence Rate', 'shrink': 0.8},
             annot_kws={'size': 10})
-ax.set_xlabel(r'$\sigma$ (Noise)')
-ax.set_ylabel(r'$\alpha$ (Friction)')
+ax.set_xlabel(r'$\sigma$ (Stakes)')
+ax.set_ylabel(r'$\alpha$ (Alignment)')
 ax.set_title(r'Convergence Rate: $\alpha \times \sigma$')
 ax.invert_yaxis()
 save_fig(fig, 'fig06_convergence_rate_heatmap')
@@ -510,7 +510,7 @@ for i, eps in enumerate(epsilon_subset):
     ax.set_title(f'(g) $\\varepsilon$ = {eps}' if i == 0 else f'({chr(104+i-1)}) $\\varepsilon$ = {eps}')
     ax.invert_yaxis()
 
-fig.suptitle('MARL 5x5x5 Factorial: Friction, Noise, and Exploration Effects',
+fig.suptitle('MARL 5x5x5 Factorial: Alignment, Stakes, and Entropy Effects',
              fontsize=15, fontweight='bold', y=1.01)
 save_fig(fig, 'fig_composite_paper')
 
@@ -625,7 +625,7 @@ The Gini coefficient measures reward inequality among the 4 agents within each c
 - **Mean Gini:** {df.gini.mean():.4f} (SD = {df.gini.std():.4f})
 - **Range:** [{df.gini.min():.4f}, {df.gini.max():.4f}]
 
-### Gini by Alpha (Friction)
+### Gini by Alpha (Alignment)
 """
 for a in sorted(df.alpha.unique()):
     g = df[df.alpha == a]['gini'].mean()

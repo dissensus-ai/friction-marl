@@ -165,6 +165,12 @@ def run_condition(
         lc_dict: {key: (n_windows,)} learning curves
     """
     rng = np.random.default_rng(seed)
+    # Seed the global torch RNG from the same per-condition seed so network init,
+    # epsilon-greedy exploration, and replay sampling are reproducible from this commit
+    # forward (archived CSVs predate this fix = a single non-regenerable realization).
+    torch.manual_seed(seed)
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(seed)
     N = n_reps * N_AGENTS  # 120 total independent Q-learners
     obs_dim = N_RESOURCES
     act_dim = action_map_gpu.shape[0]  # 27

@@ -248,7 +248,7 @@ cpu['reward_z'] = (cpu['mean_reward'] - cpu['mean_reward'].mean()) / cpu['mean_r
 
 fig, axes = plt.subplots(2, 3, figsize=(16, 10))
 
-for i, (factor, label) in enumerate([('alpha', 'alpha (Friction)'), ('sigma', 'sigma (Noise)'), ('epsilon', 'epsilon (Exploration)')]):
+for i, (factor, label) in enumerate([('alpha', 'alpha (Alignment)'), ('sigma', 'sigma (Stakes)'), ('epsilon', 'epsilon (Entropy / Obs. Noise)')]):
     # Top row: raw values
     ax = axes[0, i]
     gpu_eff = compute_main_effects(gpu, factor)
@@ -321,7 +321,7 @@ for idx, (df, name, color_palette) in enumerate([
         ax.errorbar(eff['alpha'], eff['mean'], yerr=1.96*se,
                      fmt='o-', color=color_palette[j], capsize=3,
                      label=f'sigma={sigma_val}', markersize=5, linewidth=1.5)
-    ax.set_xlabel('alpha (Friction)')
+    ax.set_xlabel('alpha (Alignment)')
     ax.set_ylabel('Z-Scored Mean Reward')
     ax.set_title(f'{name}: alpha x sigma Interaction')
     ax.legend(fontsize=8)

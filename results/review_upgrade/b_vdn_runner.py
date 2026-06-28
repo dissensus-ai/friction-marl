@@ -126,6 +126,12 @@ class JointReplayBuffer:
 def run_condition(alpha, sigma, cond_eps, mode, n_reps, n_episodes, device, seed,
                   action_map_gpu, probe_gpu):
     rng = np.random.default_rng(seed)
+    # Seed the global torch RNG from the same per-condition seed so network init,
+    # epsilon-greedy exploration, and replay sampling are reproducible from this commit
+    # forward (archived CSVs predate this fix = a single non-regenerable realization).
+    torch.manual_seed(seed)
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(seed)
     R, A = n_reps, N_AGENTS
     N = R * A
     obs_dim = N_RESOURCES

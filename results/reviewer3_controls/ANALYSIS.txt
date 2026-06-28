@@ -1,0 +1,101 @@
+####################################################################################
+# EXPERIMENT 1 -- SEPARABLE-RESOURCE CONTROL (reviewer3 Critical #1)
+####################################################################################
+
+separable: rhos=[np.float64(-0.33), np.float64(-0.2), np.float64(-0.1), np.float64(0.0), np.float64(0.2), np.float64(0.4), np.float64(0.6), np.float64(0.8)]  modes=['iql', 'vdn']  reps/cond=30-30  sigmas=[np.float64(0.6), np.float64(1.0)]
+shared   : rhos=[np.float64(-0.33), np.float64(-0.2), np.float64(-0.1), np.float64(0.0), np.float64(0.2), np.float64(0.4), np.float64(0.6), np.float64(0.8)]  reps/cond=30-30
+
+--- normalized gap dR/sigma vs rho (pooled over sigma) ---
+  arch/mode :  -0.33  -0.20  -0.10  +0.00  +0.20  +0.40  +0.60  +0.80
+  shar/iql :   3.86   4.07   4.08   4.02   3.65   3.39   3.34   3.31
+  shar/vdn :   3.20   3.36   3.38   3.35   3.02   2.76   2.69   2.43
+  sepa/iql :   3.87   3.97   3.94   4.09   3.52   3.97   3.85   3.96
+  sepa/vdn :   4.05   4.13   4.09   4.22   3.66   4.15   3.97   4.11
+
+========================================================================
+[IQL]  separable vs shared structure
+========================================================================
+
+  SHARED
+    slope(gap_norm~rho) = -0.755  (R^2=0.029, p=1.72e-04)
+    one-way ANOVA across rho: F=2.50, p=1.58e-02  (k=8 levels)
+    cooperation (rho=+0.80) - indifference (rho=0): -0.707  [95% CI -1.409,-0.005]  Welch t=-2.00 p=4.83e-02  MWU p=1.15e-03
+    opposition  (rho=-0.33) - indifference (rho=0): -0.154  [95% CI -0.739,+0.432]  Welch t=-0.52 p=6.04e-01
+
+  SEPARABLE
+    slope(gap_norm~rho) = -0.029  (R^2=0.000, p=8.66e-01)
+    one-way ANOVA across rho: F=0.90, p=5.07e-01  (k=8 levels)
+    cooperation (rho=+0.80) - indifference (rho=0): -0.131  [95% CI -0.739,+0.477]  Welch t=-0.43 p=6.70e-01  MWU p=9.36e-02
+    opposition  (rho=-0.33) - indifference (rho=0): -0.224  [95% CI -0.600,+0.151]  Welch t=-1.18 p=2.39e-01
+
+  shape corr (shared vs separable gap-vs-rho curve) = +0.223
+
+========================================================================
+[VDN]  separable vs shared structure
+========================================================================
+
+  SHARED
+    slope(gap_norm~rho) = -0.838  (R^2=0.050, p=7.26e-07)
+    one-way ANOVA across rho: F=4.16, p=1.88e-04  (k=8 levels)
+    cooperation (rho=+0.80) - indifference (rho=0): -0.924  [95% CI -1.496,-0.352]  Welch t=-3.20 p=1.78e-03  MWU p=2.78e-05
+    opposition  (rho=-0.33) - indifference (rho=0): -0.159  [95% CI -0.666,+0.349]  Welch t=-0.62 p=5.37e-01
+
+  SEPARABLE
+    slope(gap_norm~rho) = -0.053  (R^2=0.000, p=7.62e-01)
+    one-way ANOVA across rho: F=0.89, p=5.16e-01  (k=8 levels)
+    cooperation (rho=+0.80) - indifference (rho=0): -0.117  [95% CI -0.742,+0.508]  Welch t=-0.37 p=7.11e-01  MWU p=1.03e-01
+    opposition  (rho=-0.33) - indifference (rho=0): -0.173  [95% CI -0.562,+0.215]  Welch t=-0.89 p=3.78e-01
+
+  shape corr (shared vs separable gap-vs-rho curve) = +0.154
+
+========================================================================
+VERDICT (Experiment 1)
+========================================================================
+  [IQL] shared_tracks=True  separable_tracks=False
+           slope shared=-0.755(p=1.7e-04) separable=-0.029(p=8.7e-01)
+           => FLATTENS -> the signed-correlation law is driven by SHARED-STATE CONTENTION; with separable pools the gap is flat across rho. Central claim is BOUNDED to common-pool friction.
+  [VDN] shared_tracks=True  separable_tracks=False
+           slope shared=-0.838(p=7.3e-07) separable=-0.053(p=7.6e-01)
+           => FLATTENS -> the signed-correlation law is driven by SHARED-STATE CONTENTION; with separable pools the gap is flat across rho. Central claim is BOUNDED to common-pool friction.
+
+Saved exp1_shared_vs_separable.png + exp1_separable_headline.csv
+
+
+####################################################################################
+# EXPERIMENT 2 -- n=2 CLEAN STRONG-OPPOSITION (reviewer3 Critical #2)
+####################################################################################
+
+n=2 shared-pool: rhos=[np.float64(-1.0), np.float64(-0.6), np.float64(-0.2), np.float64(0.0), np.float64(0.4), np.float64(0.8)]  modes=['iql', 'vdn']  sigmas=[np.float64(0.6), np.float64(1.0)]  reps/cond=30-30
+
+--- normalized gap dR/sigma vs rho (pooled over sigma) ---
+  mode :  -1.00  -0.60  -0.20  +0.00  +0.40  +0.80
+  iql  :   5.31   5.39   4.93   4.04   4.04   2.96
+  vdn  :   3.62   3.97   3.81   3.28   3.47   2.60
+
+========================================================================
+[IQL]  HEADLINE: genuine opposition (rho=-1) vs indifference (rho=0)
+========================================================================
+  gap_norm(rho=-1, opposition)  = 5.313 (sd 4.270, n 60)
+  gap_norm(rho= 0, indifference)= 4.043 (sd 2.084, n 60)
+  gap_norm(rho=+0.8, cooperation) = 2.960 (sd 2.007)
+
+  OPPOSITION - INDIFFERENCE = +1.270  [95% CI +0.051, +2.490]
+     Welch t=+2.07 (dof 86), p=4.135e-02;  Mann-Whitney p=2.408e-01
+  COOPERATION - INDIFFERENCE = -1.083  [95% CI -1.823, -0.343]  Welch t=-2.90, p=4.467e-03
+  worst rho = -0.60   best rho = +0.80
+  => VERDICT [IQL]: opposition LOSES to indifference (rho=-1 gap significantly HIGHER) -> monotone: opposition is worst, confirms the n=4 finding at genuine unconfounded rho=-1.
+
+========================================================================
+[VDN]  HEADLINE: genuine opposition (rho=-1) vs indifference (rho=0)
+========================================================================
+  gap_norm(rho=-1, opposition)  = 3.624 (sd 2.503, n 60)
+  gap_norm(rho= 0, indifference)= 3.279 (sd 1.598, n 60)
+  gap_norm(rho=+0.8, cooperation) = 2.602 (sd 1.903)
+
+  OPPOSITION - INDIFFERENCE = +0.345  [95% CI -0.416, +1.106]
+     Welch t=+0.90 (dof 100), p=3.704e-01;  Mann-Whitney p=8.522e-01
+  COOPERATION - INDIFFERENCE = -0.677  [95% CI -1.312, -0.041]  Welch t=-2.11, p=3.713e-02
+  worst rho = -0.60   best rho = +0.80
+  => VERDICT [VDN]: opposition TIES indifference (no significant difference at rho=-1) -> opposition ~ indifference; only alignment helps.
+
+Saved exp2_n2_gap_vs_rho.png + exp2_n2_headline.csv
