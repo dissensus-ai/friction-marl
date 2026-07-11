@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "friction-marl: Multi-Agent Reinforcement Learning Validation of Friction Dynamics"
+title: "friction-marl: A Multi-Agent Reinforcement Learning Test of Friction Dynamics"
 message: "If you use this software, please cite it as below."
 type: software
 authors:

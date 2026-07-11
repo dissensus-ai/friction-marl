@@ -1,132 +1,72 @@
-# MARL 5×5×5 Factorial — Key Findings & Interpretation
+# MARL Findings — Corrected Summary
 
-**Date:** 2026-02-13
-**Data:** Both GPU and CPU full factorials complete (125 conditions × 30 reps × 1000 episodes; `replication_results.csv` has all 3750 rows)
+**Last substantive revision:** 2026-07-11 (supersedes the 2026-02-13 version of this file)
 
----
+This file used to carry the February 2026 interpretation of the 5x5x5 factorial. That
+interpretation was overturned in June 2026 when the preference data-generating process
+was audited and re-run with a genuinely signed design. The corrected findings are
+summarized in the [README](README.md#findings-corrected-supersedes-the-february-2026-interpretation)
+and documented in full, with designs, verification gates, and caveats, in:
 
-## The Game
+| Write-up | Contents |
+|---|---|
+| `results/adversarial_rerun/FINDINGS.md` | The DGP bug, the signed redesign, the monotone alignment law, the functional-form refit |
+| `results/reviewer3_controls/FINDINGS.md` | Separable-pool control (bounds the law to shared-state contention) and n=2 clean rho=-1 opposition |
+| `results/partial_sharing/FINDINGS.md` | Contention-degree dose-response (slope scales monotonically with the fraction of shared resources) |
 
-4 IQL agents manage 3 shared resources (continuous, capped at 10). Each timestep, each agent pushes each resource by {-1, 0, +1}. Resources aggregate and clip.
-
-**Reward:** Each agent has a target preference vector (where they want resources to be) and importance weights. Reward = -Σ wᵢ(state_i - target_i)² — i.e., negative squared distance from their ideal state, weighted by how much they care about each resource.
-
-## The Three Parameters
-
-### Alpha (α ∈ {-0.8, -0.4, 0.0, 0.4, 0.8}) — PREFERENCE ALIGNMENT
-
-Controls how correlated agents' target preferences are:
-
-```python
-target_i = α * base_target + (1 - |α|) * noise_i
-```
-
-- **α = +0.8:** Agents want roughly the same thing (80% shared signal, 20% individual noise). Cooperative alignment.
-- **α = 0.0:** Agents want completely different things (100% independent noise). No structural relationship.
-- **α = -0.8:** Agents want roughly the *opposite* of each other (80% anticorrelated). Adversarial alignment.
-
-**This is the friction parameter.** α doesn't control a friction mechanism — it controls the *structure of disagreement* among agents. The AoC framework's "friction" is operationalized as the degree to which agents' preferences are structurally related.
-
-### Sigma (σ ∈ {0.2, 0.4, 0.6, 0.8, 1.0}) — PREFERENCE INTENSITY (STAKES)
-
-Controls how much agents care about each resource:
-
-```python
-weights = Normal(μ=σ, σ=0.05), clipped to [0, 1]
-```
-
-- **σ = 0.2:** Low stakes — agents barely care (weights ≈ 0.2)
-- **σ = 1.0:** High stakes — agents care intensely (weights ≈ 1.0)
-
-Since reward = -Σ wᵢ(sᵢ - tᵢ)², higher weights amplify the penalty for being far from your ideal. **Sigma is the stakes parameter** — how much it hurts to not get what you want.
-
-The analysis reports calling this "environmental stochasticity" or "noise" are WRONG about the interpretation (though the statistics are correct). Sigma is preference intensity / stakes, not environmental noise. The reason sigma dominates (η² = 0.397) is that **higher stakes make the game harder** — the same state-target distance hurts more.
-
-### Epsilon (ε ∈ {0.0, 0.25, 0.5, 0.75, 1.0}) — OBSERVATION NOISE
-
-Controls noise added to agents' observations of the resource state:
-
-```python
-obs = true_state + Normal(0, ε)
-```
-
-- **ε = 0.0:** Perfect information — agents see the true resource levels
-- **ε = 1.0:** Noisy information — agents see the state plus Gaussian noise
-
-This IS environmental stochasticity — perceptual uncertainty about the world.
+**One-paragraph version:** the original sampler was sign-blind — its realized cross-agent
+preference correlation is alpha^2/(alpha^2+(1-|alpha|)^2), a function of |alpha| only and
+never negative, so the "adversarial" arm never existed (alpha = +-0.8 both realize
+correlation +0.94; `results/adversarial_rerun/dgp_verification.csv`). On genuinely signed
+DGPs the gap-vs-correlation relationship is monotone: cooperation lowers the coordination
+gap, opposition never beats indifference (including at a clean, unconfounded rho=-1 with
+n=2). The consent-friction functional's single-index form sigma/(1+rho) is rejected against
+an independent-effects model (Delta-AIC ~24 IQL / ~19 VDN;
+`results/adversarial_rerun/functional_form_refit.csv`). Sigma-dominance is mechanical
+(degree-1 homogeneity of the reward in the weights). The surviving alignment effect is
+bounded to shared-state contention: it flattens with separable resource pools and scales
+monotonically with the fraction of resources shared.
 
 ---
 
-## The Headline Findings (Correctly Interpreted)
+## Superseded interpretations (honest changelog)
 
-### 1. PREFERENCE STRUCTURE > PREFERENCE DIRECTION
+The 2026-02-13 version of this file (preserved in git history) made five headline claims
+from the original factorial. Their fates:
 
-**The U-shape:** α=0 (unrelated preferences) performs worst. Both cooperative (α>0) and adversarial (α<0) alignment outperform neutral.
+1. **"Preference structure > preference direction" (the U-shape)** — **retracted.**
+   The claim that both cooperative and adversarial alignment beat unstructured indifference
+   was an artifact of the sign-blind DGP: alpha<0 conditions were in fact *positively*
+   correlated, identically to alpha>0, so the design compared |correlation| levels, not
+   signed alignment. With a real signed axis the symmetry collapses (the signed-linear term
+   explains 99% IQL / 95% VDN of the rho-variance) and only alignment helps. The proposed
+   companion-paper framing "structured disagreement improves coordination" was withdrawn
+   with it.
 
-**Why:** When preferences are structurally related — whether aligned or opposed — agents can *learn* the relationship and exploit it. Agent i can observe agent j's behavior and infer something about what j wants (because j's targets are correlated/anticorrelated with i's). With α=0, agent j's behavior is pure noise from agent i's perspective — there's nothing to learn from observing others.
+2. **"Stakes dominate structure" (claimed eta^2 = 0.397 vs 0.096)** — **reinterpreted.**
+   The direction survives (higher stakes raise the raw gap) but the dominance is mechanical:
+   reward is degree-1 homogeneous in the preference weights, and the sigma effect vanishes
+   entirely under sigma-normalization. It is an arithmetic property of the reward scale, not
+   a structural fact about coordination. The February eta^2 figures are from the artifact
+   run and should not be quoted.
 
-**For AoC:** Friction (structured disagreement) is not the enemy of coordination. *Incoherent* disagreement is. The Axiom of Consent's friction operator should capture the *structure* of opposition, not its magnitude. The formal framework needs |α| or α² terms, not just α.
+3. **"Friction equalizes" (claimed 28x cross-agent variance reduction at alpha=+-0.8 vs
+   alpha=0)** — **retracted as a friction claim.** Under the broken DGP, alpha=+-0.8 both
+   meant high *positive* correlation, so this observation was "strongly correlated
+   preferences produce more symmetric outcomes" — unsurprising and not about structured
+   opposition. The consent-efficiency-tradeoff gloss built on it is withdrawn.
 
-### 2. STAKES DOMINATE STRUCTURE (η² = 0.397 vs 0.096)
+4. **"Reward convergence without policy convergence"** — **descriptive statistic retained,
+   theoretical gloss withdrawn.** The observation (reward stabilizes while policies keep
+   moving) is a property of the original runs, but its framing as "the strongest empirical
+   confirmation of the AoC's core theoretical claim" over-read it; it is consistent with
+   ordinary non-stationarity in independent learners.
 
-Higher sigma (more intense preferences) makes coordination harder regardless of alignment structure. This is just mechanical — when agents care more, the same failure state hurts more — but the *relative* dominance is meaningful.
+5. **"Observation noise barely matters"** — **direction retained.** epsilon had a near-zero
+   effect in the original runs, which is why the signed-DGP re-runs fixed epsilon=0. No
+   corrected effect size is claimed; the February eta^2 figure is from the artifact run.
 
-**For AoC:** Institutional design (changing friction structure) has real effects, but the intensity of competing interests matters 4x more. A well-designed institution can't overcome the fundamental difficulty of managing high-stakes disagreements. The friction function should scale with stakes, not just structural alignment.
-
-### 3. FRICTION EQUALIZES (28x variance reduction)
-
-Agent reward variance at α=0: **2.841**. At α=±0.8: **~0.1**. When preferences are structurally related, outcomes are more equal across agents.
-
-**Why:** With correlated preferences, agents' ideal states overlap or are predictably opposed — the game is more *symmetric* even though agents nominally want different things. With α=0, random preference draws create arbitrary asymmetries — some agents happen to want states that are easier to achieve, others don't.
-
-**For AoC:** This is the consent-efficiency tradeoff. The regime that minimizes inequality (α=0) also minimizes total welfare. Friction increases total welfare AND increases equality — it's not a tradeoff between efficiency and fairness, it's that structural friction improves BOTH. The tradeoff is between structured friction (good for everyone, but requires institutional investment) and no friction (bad for everyone but requires no coordination).
-
-### 4. REWARD CONVERGENCE WITHOUT POLICY CONVERGENCE
-
-99.3% of conditions converge by reward stability. 0.85% converge by policy stability. Policies keep changing but outcomes stabilize.
-
-**For AoC:** This is exactly what the framework predicts — dynamic equilibria where stable outcomes arise through ongoing mutual adaptation, not fixed-point agreement. You don't need consensus; you need structured disagreement that produces stable aggregate behavior. This is the strongest empirical confirmation of the AoC's core theoretical claim.
-
-### 5. OBSERVATION NOISE BARELY MATTERS (η² = 0.008)
-
-Epsilon (perceptual uncertainty) is almost irrelevant to coordination outcomes. Agents tolerate substantial noise in their observations.
-
-**For AoC:** Information quality is less important than preference structure and preference intensity. Institutions don't need perfect transparency — they need structured relationships between participants. This is a meaningful governance finding: improving information quality has diminishing returns compared to improving preference alignment structures.
-
-**Caveat:** The cross-validation report claimed a 10x training budget mismatch (GPU=1k, CPU=10k episodes), but this is WRONG — both runs used `--n-episodes 1000`. The systematic level offset (GPU lower in 64/65 conditions, mean Δ=-0.459) is from different random seeds and floating-point accumulation order, not training budget. The rank-order agreement (ρ=0.937) confirms both implementations identify the same condition structure. The epsilon reversal claim should be disregarded — it was based on the false assumption of different training lengths.
-
----
-
-## Possible Companion Paper
-
-The MARL results are strong enough for a standalone short paper targeting AAMAS, AAAI, or a multi-agent workshop. Structure:
-
-1. Resource allocation game with parameterized preference alignment
-2. 5×5×5 factorial with IQL agents (125 conditions × 30 reps)
-3. The U-shape finding (structured disagreement > unstructured)
-4. The equalizing effect (28x variance reduction under friction)
-5. Dynamic equilibria (reward convergence ≠ policy convergence)
-6. Cross-validation across two independent implementations
-
-Title idea: "Structured Disagreement Improves Multi-Agent Coordination: A Factorial Study of Preference Alignment in Resource Allocation Games"
-
----
-
-## Output Inventory
-
-| What | Where |
-|------|-------|
-| GPU results (complete) | `results/gpu_factorial/` |
-| CPU results (partial, running) | `results/full_factorial/` |
-| Statistical analysis + 30 PDF figures | `results/gpu_factorial/analysis/` |
-| Cross-validation + 6 PDF figures | `results/cross_validation/` |
-| LaTeX appendix prose + 8 tables/figs | `results/gpu_factorial/analysis/latex/` |
-| Analysis reports | `ANALYSIS_REPORT.md`, `DYNAMICS_REPORT.md`, `CROSS_VALIDATION_REPORT.md` |
-
-## Next Steps
-
-1. Wait for CPU job to finish (10k episodes, ~12h remaining) — rerun analysis on higher-fidelity data
-2. Integrate `appendix_marl_content.tex` into AoC paper (`appendix_marl.tex`)
-3. Fix the sigma interpretation in all reports ("stakes" not "noise")
-4. Consider expanding to standalone companion paper
-5. Consider additional algorithms beyond IQL (PPO, MADDPG) to test if U-shape is algorithm-specific
+Nothing was silently deleted: `git log -- MARL_FINDINGS.md README.md` recovers the full
+superseded text. The reason for the rewrite is currency, not concealment — these two files
+are the repository's public statement of results, and until this revision they still
+presented the February artifact as the finding.
