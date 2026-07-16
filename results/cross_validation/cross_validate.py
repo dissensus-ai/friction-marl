@@ -21,7 +21,7 @@ from pathlib import Path
 from itertools import product
 
 # ── Config ──────────────────────────────────────────────────────────────────
-BASE = Path("/home/purrpower/Resurrexi/projects/papers/github-repos/friction-marl")
+BASE = Path(__file__).resolve().parents[2]
 GPU_CSV = BASE / "results/gpu_factorial/replication_results.csv"
 CPU_CSV = BASE / "results/full_factorial/replication_results.csv"
 OUT = BASE / "results/cross_validation"

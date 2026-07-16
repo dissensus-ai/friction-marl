@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 # ============================================================================
 # PATHS
 # ============================================================================
-BASE = Path("/home/purrpower/Resurrexi/projects/papers/github-repos/friction-marl")
+BASE = Path(__file__).resolve().parent
 GPU_REP = BASE / "results/gpu_factorial/replication_results.csv"
 GPU_METRICS = BASE / "results/gpu_factorial/analysis/metrics.csv"
 GPU_REG = BASE / "results/gpu_factorial/analysis/regressions.csv"

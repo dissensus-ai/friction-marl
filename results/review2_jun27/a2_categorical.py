@@ -13,7 +13,7 @@ from scipy import stats
 import statsmodels.formula.api as smf
 from statsmodels.stats.anova import anova_lm
 
-REPO = Path("/home/purrpower/Resurrexi/projects/papers/github-repos/friction-marl")
+REPO = Path(__file__).resolve().parents[2]
 PS = REPO / "results" / "partial_sharing"
 OUTDIR = REPO / "results" / "review2_jun27"
 OUTDIR.mkdir(parents=True, exist_ok=True)

@@ -30,7 +30,7 @@ from scipy import stats
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-BASE = Path("/home/purrpower/Resurrexi/projects/papers/github-repos/friction-marl/results/gpu_factorial")
+BASE = Path(__file__).resolve().parents[1]
 OUT = BASE / "analysis"
 OUT.mkdir(parents=True, exist_ok=True)
 

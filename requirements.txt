@@ -6,3 +6,6 @@ scipy
 matplotlib
 seaborn
 tqdm
+statsmodels
+pingouin
+scikit-learn

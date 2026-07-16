@@ -4,7 +4,7 @@ import numpy as np, pandas as pd
 from scipy import stats
 import statsmodels.formula.api as smf
 from statsmodels.stats.anova import anova_lm
-REPO = Path("/home/purrpower/Resurrexi/projects/papers/github-repos/friction-marl")
+REPO = Path(__file__).resolve().parents[2]
 PS = REPO/"results"/"partial_sharing"
 def load(p):
     d=pd.read_csv(p); d["gap_norm"]=-d["mean_reward"]/d["sigma"]; return d

@@ -140,4 +140,12 @@ Learner & Component & Slope ($/\sigma\sim\rho$) & $p$ & Share of $\Delta R$ slop
    dividend is achievability, and if anything the learning channel argues against the claim.
 
 **Artifacts:** `rjoint_decomposition_summary.csv`, `rjoint_conditions_{iql,vdn}.csv` (this dir).
-Recompute scripts: `scratchpad/rjoint_recompute.py`, `scratchpad/floor_split.py`.
+**Recompute script (committed):** `rjoint_recompute.py` (this dir). Replays the exact
+seeded DGP path of `results/adversarial_rerun/adv_runner.py` (imports the real
+`sample_agent_params_equicorr`), computes the closed-form `R^joint`/`F`/`L` per
+replication, runs the replication-level regressions, includes the box-clip/conflict
+floor split, and verifies its output against the two committed CSVs (reproduces the
+summary slopes to <1e-6 relative error and the per-condition means to ~1e-15). Run with
+`python results/review2_jun27/rjoint_recompute.py`; add `--write` to regenerate the CSVs.
+The original recompute lived in an un-committed `scratchpad/` dir (now lost); this script
+supersedes it.

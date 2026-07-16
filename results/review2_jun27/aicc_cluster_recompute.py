@@ -3,7 +3,7 @@ import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from pathlib import Path
 
-D = Path("/home/purrpower/Resurrexi/projects/papers/github-repos/friction-marl/results/adversarial_rerun")
+D = Path(__file__).resolve().parents[1] / "adversarial_rerun"
 N_AGENTS, N_RESOURCES, CAPACITY = 4, 3, 10.0
 RHOS = [-0.33,-0.2,-0.1,0.0,0.2,0.4,0.6,0.8]; SIGMAS=[0.6,1.0]; N=16
 

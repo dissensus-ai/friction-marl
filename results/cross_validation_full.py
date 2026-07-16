@@ -32,7 +32,7 @@ from statsmodels.stats.anova import anova_lm
 import pingouin as pg
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-BASE = Path("/home/purrpower/Resurrexi/projects/papers/github-repos/friction-marl")
+BASE = Path(__file__).resolve().parents[1]
 GPU_REP = BASE / "results/gpu_factorial/replication_results.csv"
 CPU_REP = BASE / "results/full_factorial/replication_results.csv"
 GPU_MET = BASE / "results/gpu_factorial/analysis/metrics.csv"
