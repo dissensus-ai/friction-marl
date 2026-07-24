@@ -1,4 +1,4 @@
-"""Deliverable B: centralized value-decomposition (VDN) vs independent IQL.
+"""Deliverable B: centralized value-decomposition (VDN) vs independent IQL vs MAPPO.
 
 Tests whether the U-shape over alpha (structured preferences -- either aligned OR
 opposed -- coordinate better than unstructured alpha=0) is IQL-specific, or survives
@@ -10,10 +10,16 @@ TEAM reward r_team = sum_i r_i with a joint TD target
 Centralized training (shared team reward + additive joint value couples the agents),
 decentralized execution (each agent still acts by argmax of its OWN Q).
 
-The runner supports --mode {iql,vdn}. EVERYTHING ELSE is identical (env, reward,
-preference sampling, network, optimizer, hyperparameters, per-condition seeds), so
-any difference in the alpha-shape is attributable to the algorithm alone. IQL-mode
-here reproduces the original independent-learner result as a matched control.
+We ALSO add MAPPO (Yu et al. 2022): an on-policy actor-critic with per-agent
+categorical policies and a CENTRALIZED critic V(s) over the shared state, trained
+with GAE(lambda) on the team return and PPO-clip. Same env, reward, preference
+sampling, obs-noise convention and per-condition seeds as the off-policy branch, so
+any difference in the alpha-shape is attributable to the algorithm alone.
+
+The runner supports --mode {iql,vdn,mappo}. EVERYTHING ELSE is identical (env, reward,
+preference sampling, network, per-condition seeds), so any difference in the
+alpha-shape is attributable to the algorithm alone. IQL-mode here reproduces the
+original independent-learner result as a matched control.
 
 Targeted design (not the full 125x30): alpha sweep x {low, mid, high} stakes, eps=0.
 """
@@ -22,6 +28,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
@@ -123,8 +130,8 @@ class JointReplayBuffer:
         return self.size >= B
 
 
-def run_condition(alpha, sigma, cond_eps, mode, n_reps, n_episodes, device, seed,
-                  action_map_gpu, probe_gpu):
+def _run_condition_offpolicy(alpha, sigma, cond_eps, mode, n_reps, n_episodes, device, seed,
+                             action_map_gpu, probe_gpu, n_eval_episodes=100, eval_eps=0.0):
     rng = np.random.default_rng(seed)
     # Seed the global torch RNG from the same per-condition seed so network init,
     # epsilon-greedy exploration, and replay sampling are reproducible from this commit
@@ -170,7 +177,8 @@ def run_condition(alpha, sigma, cond_eps, mode, n_reps, n_episodes, device, seed
             global_step += 1
             obs_all = states.unsqueeze(1).expand(-1, A, -1)  # (R,A,M)
             if cond_eps > 0:
-                noise = torch.randn(R, A, N_RESOURCES, device=device, generator=noise_gen) * cond_eps
+                # obs noise ~ N(0, eps*I): std = sqrt(eps) so covariance = eps*I (eps=0 stays 0)
+                noise = torch.randn(R, A, N_RESOURCES, device=device, generator=noise_gen) * (cond_eps ** 0.5)
                 obs_in = obs_all + noise
             else:
                 obs_in = obs_all
@@ -190,7 +198,14 @@ def run_condition(alpha, sigma, cond_eps, mode, n_reps, n_episodes, device, seed
             diff = new_states.unsqueeze(1) - targets_t  # (R,A,M)
             rewards = (weights_t * -(diff ** 2)).sum(dim=2)  # (R,A)
 
-            nobs = new_states.unsqueeze(1).expand(-1, A, -1)  # clean next obs (R,A,M)
+            # Store next_obs with FRESH matched i.i.d. noise (same std sqrt(eps)) so TD
+            # targets don't bootstrap on a privileged denoised state (obs noise ~ N(0, eps*I)).
+            nobs_clean = new_states.unsqueeze(1).expand(-1, A, -1)  # (R,A,M)
+            if cond_eps > 0:
+                nobs = nobs_clean + torch.randn(R, A, N_RESOURCES, device=device,
+                                                generator=noise_gen) * (cond_eps ** 0.5)
+            else:
+                nobs = nobs_clean
             done_val = 1.0 if step == EPISODE_LENGTH - 1 else 0.0
 
             buf.push(obs_in, act_idx.reshape(R, A), rewards,
@@ -253,6 +268,22 @@ def run_condition(alpha, sigma, cond_eps, mode, n_reps, n_episodes, device, seed
                     dist = (1 - eps) * dist + eps * (1.0 / act_dim)
                     policy_history[r][ag].append(dist)
 
+    # --- frozen held-out eval (additive; no optimizer.step / buf.push / soft_update) ---
+    def _reset(gen):
+        return torch.rand(R, N_RESOURCES, device=device, generator=gen) * CAPACITY
+
+    def _observe(st):
+        return st.unsqueeze(1).expand(-1, A, -1)
+
+    def _step(st, deltas):
+        ns = (st + deltas.sum(dim=1)).clamp(0.0, CAPACITY)
+        d = ns.unsqueeze(1) - targets_t
+        return ns, (weights_t * -(d ** 2)).sum(dim=2)
+
+    eval_rew = evaluate_frozen(q_net, _reset, _observe, _step, action_map_delta,
+                               R, A, obs_dim, act_dim, device, seed + 1_000_003,
+                               n_eval_episodes, eval_eps)  # (R,A)
+
     last100_cpu = last100.cpu().numpy()
     rows = []
     for r in range(R):
@@ -265,31 +296,314 @@ def run_condition(alpha, sigma, cond_eps, mode, n_reps, n_episodes, device, seed
             **{f"agent_{i}_reward": float(last_rew[i]) for i in range(A)},
             "mean_reward": float(last_rew.mean()),
             "convergence_time": float(np.mean(conv)),
+            "eval_gap": float(-eval_rew[r].mean()),
         })
     return rows
 
 
+# ===========================================================================
+# MAPPO (on-policy, centralized critic) + shared frozen-eval helper.
+# Purely ADDITIVE: iql/vdn above are unchanged (byte-for-byte apart from the
+# obs-noise-units and replay-leak bug fixes and the additive eval_gap column).
+# ===========================================================================
+@dataclass
+class MAPPOConfig:
+    clip: float = 0.2
+    gae_lambda: float = 0.95
+    ppo_epochs: int = 4
+    vf_coef: float = 0.5
+    ent_coef: float = 0.01
+    rollout_len: int = EPISODE_LENGTH
+    normalize_returns: bool = True
+
+
+def compute_gae(rewards, values, dones, gamma, lam, last_value):
+    """GAE(lambda). rewards/values/dones: (T, R). last_value: (R,).
+
+    Returns (advantages, returns), each (T, R). done[t]=1 => no bootstrap past t
+    (matches the off-policy branch, which zeros the TD target's bootstrap at the
+    terminal step), so all three modes treat the episode boundary identically.
+    """
+    T, R = rewards.shape
+    adv = torch.zeros(T, R, device=rewards.device)
+    lastgae = torch.zeros(R, device=rewards.device)
+    for t in range(T - 1, -1, -1):
+        nonterminal = 1.0 - dones[t]
+        nextval = last_value if t == T - 1 else values[t + 1]
+        delta = rewards[t] + gamma * nextval * nonterminal - values[t]
+        lastgae = delta + gamma * lam * nonterminal * lastgae
+        adv[t] = lastgae
+    return adv, adv + values
+
+
+def evaluate_frozen(net, reset_fn, observe_fn, step_fn, action_map_delta,
+                    R, A, obs_dim, act_dim, device, eval_seed,
+                    n_eval_episodes=100, eval_eps=0.0):
+    """Frozen greedy rollout on HELD-OUT initial states.
+
+    No optimizer.step / buf.push / soft_update. eps forced to 0 (pure argmax on the
+    same BatchedQNet that both the Q-learners and the MAPPO actor expose). Obs-noise
+    is OFF by default; eval_eps>0 re-injects N(0, eval_eps*I) (std=sqrt(eval_eps)) for
+    a noisy-eval probe. A separate seeded RNG draws the held-out initial states, so
+    the eval distribution never overlaps the training resets. Returns per-rep mean
+    eval reward, shape (R, A).
+    """
+    N = R * A
+    gen = torch.Generator(device=device)
+    gen.manual_seed(int(eval_seed))
+    total = torch.zeros(R, A, device=device)
+    for _ in range(n_eval_episodes):
+        states = reset_fn(gen)
+        ep = torch.zeros(R, A, device=device)
+        for _t in range(EPISODE_LENGTH):
+            obs = observe_fn(states)  # (R,A,M)
+            if eval_eps > 0:
+                obs = obs + torch.randn(R, A, N_RESOURCES, device=device,
+                                        generator=gen) * (eval_eps ** 0.5)
+            obs_flat = obs.reshape(N, obs_dim)
+            with torch.no_grad():
+                q = net.forward(obs_flat.unsqueeze(1)).squeeze(1)  # (N, act)
+            act = q.argmax(dim=1)
+            deltas = action_map_delta[act].reshape(R, A, N_RESOURCES)
+            states, rewards = step_fn(states, deltas)
+            ep += rewards
+        total += ep / EPISODE_LENGTH
+    return (total / n_eval_episodes).cpu().numpy()  # (R,A)
+
+
+def _mappo_train(actor, critic, optimizer, train_reset_fn, eval_reset_fn, observe_fn,
+                 step_fn, global_state_fn, action_map_delta, probe, R, A, obs_dim,
+                 act_dim, n_episodes, device, noise_gen, noise_std, cfg,
+                 eval_seed, n_eval_episodes, eval_eps):
+    """Generic on-policy MAPPO trainer shared by the shared-pool, separable and
+    partial-sharing envs. Env dynamics enter ONLY through the closures
+    (train_reset_fn/eval_reset_fn/observe_fn/step_fn/global_state_fn), so the RL
+    core (GAE + PPO-clip + value loss + entropy) is written and tested once.
+
+    NO replay (on-policy): each episode is one rollout of cfg.rollout_len steps,
+    then cfg.ppo_epochs of full-batch PPO. Returns a list of per-rep dicts with keys
+    replication / agent_i_reward / mean_reward / convergence_time / eval_gap; callers
+    merge in the condition-label keys (mode/alpha-or-rho/sigma/epsilon/env/...).
+    """
+    N = R * A
+    T = cfg.rollout_len
+    last100 = torch.zeros(R, 100, A, device=device)
+    policy_history = [[[] for _ in range(A)] for _ in range(R)]
+
+    for ep in range(n_episodes):
+        states = train_reset_fn()
+        ep_rewards = torch.zeros(R, A, device=device)
+
+        buf_obs = torch.zeros(T, N, obs_dim, device=device)
+        buf_act = torch.zeros(T, N, dtype=torch.long, device=device)
+        buf_logp = torch.zeros(T, N, device=device)
+        buf_state = torch.zeros(T, R, global_state_fn(states).shape[1], device=device)
+        buf_val = torch.zeros(T, R, device=device)
+        buf_rteam = torch.zeros(T, R, device=device)
+        buf_done = torch.zeros(T, R, device=device)
+
+        for step in range(T):
+            gstate = global_state_fn(states)  # (R, gdim)
+            obs_all = observe_fn(states)       # (R,A,M)
+            if noise_std > 0:
+                obs_in = obs_all + torch.randn(R, A, N_RESOURCES, device=device,
+                                               generator=noise_gen) * noise_std
+            else:
+                obs_in = obs_all
+            obs_flat = obs_in.reshape(N, obs_dim)
+
+            with torch.no_grad():
+                logits = actor.forward(obs_flat.unsqueeze(1)).squeeze(1)  # (N, act)
+                dist = torch.distributions.Categorical(logits=logits)
+                act_idx = dist.sample()                                   # (N,)
+                logp = dist.log_prob(act_idx)                             # (N,)
+                v = critic.forward(gstate.unsqueeze(1)).reshape(R)        # (R,)
+
+            deltas = action_map_delta[act_idx].reshape(R, A, N_RESOURCES)
+            new_states, rewards = step_fn(states, deltas)                 # (R,A)
+            done_val = 1.0 if step == T - 1 else 0.0
+
+            buf_obs[step] = obs_flat
+            buf_act[step] = act_idx
+            buf_logp[step] = logp
+            buf_state[step] = gstate
+            buf_val[step] = v
+            buf_rteam[step] = rewards.sum(dim=1)                          # team reward (R,)
+            buf_done[step] = done_val
+
+            ep_rewards += rewards
+            states = new_states
+
+        with torch.no_grad():
+            last_v = critic.forward(global_state_fn(states).unsqueeze(1)).reshape(R)
+        adv, ret = compute_gae(buf_rteam, buf_val, buf_done, GAMMA, cfg.gae_lambda, last_v)
+
+        # each agent in a replication shares that replication's TEAM advantage
+        adv_N = adv.unsqueeze(2).expand(T, R, A).reshape(T, N)
+        if cfg.normalize_returns:
+            adv_N = (adv_N - adv_N.mean()) / (adv_N.std() + 1e-8)
+
+        obs_NT = buf_obs.permute(1, 0, 2)     # (N, T, obs)
+        act_NT = buf_act.permute(1, 0)        # (N, T)
+        oldlogp_NT = buf_logp.permute(1, 0)   # (N, T)
+        adv_NT = adv_N.permute(1, 0)          # (N, T)
+        state_RT = buf_state.permute(1, 0, 2)  # (R, T, gdim)
+        ret_RT = ret.permute(1, 0)            # (R, T)
+
+        for _ in range(cfg.ppo_epochs):
+            logits = actor.forward(obs_NT)     # (N, T, act)
+            dist = torch.distributions.Categorical(logits=logits)
+            new_logp = dist.log_prob(act_NT)   # (N, T)
+            entropy = dist.entropy().mean()
+            ratio = torch.exp(new_logp - oldlogp_NT)
+            surr1 = ratio * adv_NT
+            surr2 = torch.clamp(ratio, 1.0 - cfg.clip, 1.0 + cfg.clip) * adv_NT
+            policy_loss = -torch.min(surr1, surr2).mean()
+            v_pred = critic.forward(state_RT).squeeze(-1)  # (R, T)
+            value_loss = ((v_pred - ret_RT) ** 2).mean()
+            loss = policy_loss + cfg.vf_coef * value_loss - cfg.ent_coef * entropy
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        if ep >= n_episodes - 100:
+            last100[:, ep - (n_episodes - 100)] = ep_rewards / EPISODE_LENGTH
+
+        if ep % POLICY_SAMPLE_INTERVAL == 0 or ep == n_episodes - 1:
+            with torch.no_grad():
+                pv = actor.forward(probe).argmax(dim=2).cpu().numpy()  # (N,128)
+            for r in range(R):
+                for ag in range(A):
+                    idx = r * A + ag
+                    dist_h = np.bincount(pv[idx], minlength=act_dim).astype(np.float32) / 128.0
+                    policy_history[r][ag].append(dist_h)
+
+    eval_rew = evaluate_frozen(actor, eval_reset_fn, observe_fn, step_fn, action_map_delta,
+                               R, A, obs_dim, act_dim, device, eval_seed,
+                               n_eval_episodes, eval_eps)  # (R,A)
+
+    last100_cpu = last100.cpu().numpy()
+    per_rep = []
+    for r in range(R):
+        last_rew = last100_cpu[r].mean(axis=0)  # (A,)
+        conv = [compute_convergence_time(policy_history[r][ag]) * POLICY_SAMPLE_INTERVAL
+                for ag in range(A)]
+        per_rep.append({
+            "replication": r,
+            **{f"agent_{i}_reward": float(last_rew[i]) for i in range(A)},
+            "mean_reward": float(last_rew.mean()),
+            "convergence_time": float(np.mean(conv)),
+            "eval_gap": float(-eval_rew[r].mean()),
+        })
+    return per_rep
+
+
+def run_condition_mappo(alpha, sigma, cond_eps, n_reps, n_episodes, device, seed,
+                        action_map_gpu, probe_gpu, n_eval_episodes=100, eval_eps=0.0):
+    """MAPPO on the SHARED-POOL main env. Actor = BatchedQNet (obs -> 27 logits,
+    Categorical); centralized critic = BatchedQNet(n=R, obs_dim=M, out_dim=1) over the
+    shared state s (R, M). Matched seeds + SAME sample_agent_params draw order as the
+    off-policy branch => preferences/inits are byte-identical across modes.
+    """
+    rng = np.random.default_rng(seed)
+    torch.manual_seed(seed)
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(seed)
+    R, A = n_reps, N_AGENTS
+    N = R * A
+    obs_dim = N_RESOURCES
+    act_dim = action_map_gpu.shape[0]
+
+    actor = BatchedQNet(N, obs_dim, act_dim, HIDDEN_DIM, device)     # per-agent policy
+    critic = BatchedQNet(R, obs_dim, 1, HIDDEN_DIM, device)          # centralized V(s)
+    optimizer = torch.optim.Adam(actor.params() + critic.params(), lr=LR)
+
+    # SAME preference-draw order as _run_condition_offpolicy (cross-mode comparability).
+    weights_np = np.zeros((R, A, N_RESOURCES), dtype=np.float32)
+    targets_np = np.zeros((R, A, N_RESOURCES), dtype=np.float32)
+    for r in range(R):
+        w, t = sample_agent_params(rng, A, N_RESOURCES, alpha, sigma)
+        weights_np[r] = w
+        targets_np[r] = t
+    weights_t = torch.tensor(weights_np, device=device)
+    targets_t = torch.tensor(targets_np, device=device)
+
+    noise_gen = torch.Generator(device=device)
+    noise_gen.manual_seed(int(rng.integers(0, 2**62)))
+    action_map_delta = action_map_gpu.float()
+    probe = probe_gpu.unsqueeze(0).expand(N, -1, -1)
+    noise_std = cond_eps ** 0.5  # obs noise ~ N(0, eps*I): std=sqrt(eps) (eps=0 -> 0)
+
+    def train_reset():
+        return torch.rand(R, N_RESOURCES, device=device) * CAPACITY
+
+    def eval_reset(gen):
+        return torch.rand(R, N_RESOURCES, device=device, generator=gen) * CAPACITY
+
+    def observe(st):
+        return st.unsqueeze(1).expand(-1, A, -1)  # (R,A,M) shared state broadcast
+
+    def step_fn(st, deltas):
+        ns = (st + deltas.sum(dim=1)).clamp(0.0, CAPACITY)
+        d = ns.unsqueeze(1) - targets_t
+        return ns, (weights_t * -(d ** 2)).sum(dim=2)
+
+    def global_state(st):
+        return st  # shared state (R, M) IS the centralized-critic input
+
+    per_rep = _mappo_train(actor, critic, optimizer, train_reset, eval_reset, observe,
+                           step_fn, global_state, action_map_delta, probe, R, A, obs_dim,
+                           act_dim, n_episodes, device, noise_gen, noise_std, MAPPOConfig(),
+                           seed + 1_000_003, n_eval_episodes, eval_eps)
+    for row in per_rep:
+        row.update({"mode": "mappo", "alpha": alpha, "sigma": sigma, "epsilon": cond_eps})
+    return per_rep
+
+
+def run_condition(alpha, sigma, cond_eps, mode, n_reps, n_episodes, device, seed,
+                  action_map_gpu, probe_gpu, n_eval_episodes=100, eval_eps=0.0):
+    """Dispatcher: on-policy MAPPO for mode=='mappo', else off-policy IQL/VDN. Same
+    signature / env / per-condition seed for every mode so the three are matched and
+    mergeable. Downstream runners (adv_runner / n2_runner) call this verbatim.
+    """
+    if mode == "mappo":
+        return run_condition_mappo(alpha, sigma, cond_eps, n_reps, n_episodes, device,
+                                   seed, action_map_gpu, probe_gpu, n_eval_episodes, eval_eps)
+    return _run_condition_offpolicy(alpha, sigma, cond_eps, mode, n_reps, n_episodes,
+                                    device, seed, action_map_gpu, probe_gpu,
+                                    n_eval_episodes, eval_eps)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--modes", nargs="+", default=["iql", "vdn"])
+    ap.add_argument("--modes", nargs="+", default=["iql", "vdn", "mappo"])
     ap.add_argument("--alphas", nargs="+", type=float, default=[-0.8, -0.4, 0.0, 0.4, 0.8])
     ap.add_argument("--sigmas", nargs="+", type=float, default=[0.2, 0.6, 1.0])
     ap.add_argument("--epsilon", type=float, default=0.0)
     ap.add_argument("--n-reps", type=int, default=30)
     ap.add_argument("--n-episodes", type=int, default=1000)
+    ap.add_argument("--n-eval-episodes", type=int, default=100,
+                    help="held-out frozen-eval episodes per condition (0 disables)")
+    ap.add_argument("--eval-eps", type=float, default=0.0,
+                    help="obs-noise variance during frozen eval (0=off; std=sqrt(eval_eps))")
     ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--device", type=int, default=0)
+    ap.add_argument("--device", type=str, default="0", help='CUDA index or "cpu"')
     ap.add_argument("--out", type=str, default=str(Path(__file__).resolve().parent / "vdn_vs_iql.csv"))
     args = ap.parse_args()
 
-    device = torch.device(f"cuda:{args.device}")
+    if args.device == "cpu":
+        device = torch.device("cpu")
+        dev_name = "CPU"
+    else:
+        device = torch.device(f"cuda:{int(args.device)}")
+        dev_name = torch.cuda.get_device_name(int(args.device))
     action_map = build_action_map(N_RESOURCES)
     action_map_gpu = torch.tensor(action_map, device=device)
     master = np.random.default_rng(args.seed)
     probe = master.uniform(0.0, CAPACITY, size=(128, N_RESOURCES)).astype(np.float32)
     probe_gpu = torch.tensor(probe, device=device)
 
-    # Same per-condition seed for BOTH modes => matched preference draws & init.
+    # Same per-condition seed for ALL modes => matched preference draws & init.
     cond_keys = [(a, s) for a in args.alphas for s in args.sigmas]
     cond_seeds = {k: int(master.integers(0, 2**62)) for k in cond_keys}
 
@@ -298,21 +612,25 @@ def main():
     t0 = time.time()
     total = len(args.modes) * len(cond_keys)
     done = 0
-    print(f"=== VDN vs IQL targeted run: {device} ({torch.cuda.get_device_name(args.device)}) ===")
+    print(f"=== IQL vs VDN vs MAPPO targeted run: {device} ({dev_name}) ===")
     print(f"modes={args.modes} alphas={args.alphas} sigmas={args.sigmas} "
-          f"eps={args.epsilon} reps={args.n_reps} eps_len={args.n_episodes}")
+          f"eps={args.epsilon} reps={args.n_reps} eps_len={args.n_episodes} "
+          f"eval_n={args.n_eval_episodes} eval_eps={args.eval_eps}")
     for mode in args.modes:
         for (a, s) in cond_keys:
             tc = time.time()
             rows = run_condition(a, s, args.epsilon, mode, args.n_reps, args.n_episodes,
-                                 device, cond_seeds[(a, s)], action_map_gpu, probe_gpu)
+                                 device, cond_seeds[(a, s)], action_map_gpu, probe_gpu,
+                                 n_eval_episodes=args.n_eval_episodes, eval_eps=args.eval_eps)
             all_rows.extend(rows)
             done += 1
             pd.DataFrame(all_rows).to_csv(out_path, index=False)
             print(f"  [{done}/{total}] mode={mode} a={a:+.1f} s={s:.1f}  "
                   f"gap={-np.mean([r['mean_reward'] for r in rows]):.4f}  "
+                  f"eval_gap={np.mean([r['eval_gap'] for r in rows]):.4f}  "
                   f"{time.time()-tc:.1f}s")
-            torch.cuda.empty_cache()
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
     print(f"\nDone in {(time.time()-t0)/60:.1f} min -> {out_path}")
 
 

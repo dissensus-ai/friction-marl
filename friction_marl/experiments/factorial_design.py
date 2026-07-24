@@ -138,9 +138,11 @@ def run_factorial_experiment(
                 ep_rewards = np.zeros(n_agents, dtype=np.float32)
 
                 while not (done or truncated):
+                    # obs noise ~ N(0, eps*I): std = sqrt(eps) so covariance = eps*I
+                    # (eps=0 stays 0).
                     noisy_obs = []
                     for agent_obs in obs:
-                        noise = rng.normal(0.0, cond.epsilon, size=n_resources)
+                        noise = rng.normal(0.0, np.sqrt(cond.epsilon), size=n_resources)
                         noisy_obs.append(agent_obs + noise)
 
                     action_indices = [agent.select_action(o) for agent, o in zip(agents, noisy_obs)]
@@ -150,8 +152,16 @@ def run_factorial_experiment(
                     state = info["state"]
                     rewards = compute_rewards(state, weights, targets)
 
+                    # Store next_obs with FRESH matched i.i.d. noise (same std sqrt(eps)) so
+                    # TD targets don't bootstrap on a privileged denoised state. The stored
+                    # current obs is noisy, so the stored next obs must be too.
+                    noisy_next_obs = [
+                        no + rng.normal(0.0, np.sqrt(cond.epsilon), size=n_resources)
+                        for no in next_obs
+                    ]
+
                     for i, agent in enumerate(agents):
-                        agent.replay.push(noisy_obs[i], action_indices[i], rewards[i], next_obs[i], done or truncated)
+                        agent.replay.push(noisy_obs[i], action_indices[i], rewards[i], noisy_next_obs[i], done or truncated)
                         agent.update()
                         agent.soft_update_target()
 

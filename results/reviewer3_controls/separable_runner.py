@@ -51,6 +51,7 @@ from friction_marl.experiments.factorial_design import build_action_map  # noqa:
 # import the EXACT machinery / hyperparameters used by the shared-pool runner
 from results.review_upgrade.b_vdn_runner import (  # noqa: E402
     BatchedQNet, JointReplayBuffer,
+    MAPPOConfig, _mappo_train, evaluate_frozen,
     N_AGENTS, N_RESOURCES, HIDDEN_DIM, LR, GAMMA,
     EPS_START, EPS_END, EPS_DECAY, BUFFER_CAPACITY, BATCH_SIZE, TAU,
     CAPACITY, EPISODE_LENGTH, POLICY_SAMPLE_INTERVAL,
@@ -59,13 +60,18 @@ from friction_marl.utils.metrics import compute_convergence_time  # noqa: E402
 
 
 def run_condition_separable(sampler, rho, sigma, cond_eps, mode, n_reps, n_episodes,
-                            device, seed, action_map_gpu, probe_gpu):
+                            device, seed, action_map_gpu, probe_gpu,
+                            n_eval_episodes=100, eval_eps=0.0):
     """SEPARABLE-resource analogue of b_vdn_runner.run_condition.
 
     Per-agent independent resource pools: agent i's action moves ONLY pool i, and
     agent i is rewarded by pool i vs target i. The preference sampler is the signed
     equicorrelated DGP (rho = cross-agent target correlation), identical to shared.
     """
+    if mode == "mappo":
+        return _run_condition_separable_mappo(
+            sampler, rho, sigma, cond_eps, n_reps, n_episodes, device, seed,
+            action_map_gpu, probe_gpu, n_eval_episodes, eval_eps)
     rng = np.random.default_rng(seed)
     # Seed the global torch RNG from the same per-condition seed so network init,
     # epsilon-greedy exploration, and replay sampling are reproducible from this commit
@@ -195,6 +201,22 @@ def run_condition_separable(sampler, rho, sigma, cond_eps, mode, n_reps, n_episo
                     dist = (1 - eps) * dist + eps * (1.0 / act_dim)
                     policy_history[r][ag].append(dist)
 
+    # --- frozen held-out eval (additive; no optimizer.step / buf.push / soft_update) ---
+    def _reset(gen):
+        return torch.rand(R, A, N_RESOURCES, device=device, generator=gen) * CAPACITY
+
+    def _observe(st):
+        return st  # each agent observes its OWN pool
+
+    def _step(st, deltas):
+        ns = (st + deltas).clamp(0.0, CAPACITY)
+        d = ns - targets_t
+        return ns, (weights_t * -(d ** 2)).sum(dim=2)
+
+    eval_rew = evaluate_frozen(q_net, _reset, _observe, _step, action_map_delta,
+                               R, A, obs_dim, act_dim, device, seed + 1_000_003,
+                               n_eval_episodes, eval_eps)  # (R,A)
+
     last100_cpu = last100.cpu().numpy()
     rows = []
     for r in range(R):
@@ -207,13 +229,82 @@ def run_condition_separable(sampler, rho, sigma, cond_eps, mode, n_reps, n_episo
             **{f"agent_{i}_reward": float(last_rew[i]) for i in range(A)},
             "mean_reward": float(last_rew.mean()),
             "convergence_time": float(np.mean(conv)),
+            "eval_gap": float(-eval_rew[r].mean()),
         })
     return rows
 
 
+def _run_condition_separable_mappo(sampler, rho, sigma, cond_eps, n_reps, n_episodes,
+                                   device, seed, action_map_gpu, probe_gpu,
+                                   n_eval_episodes=100, eval_eps=0.0):
+    """MAPPO on the SEPARABLE env. Same actor/critic recipe as the shared-pool MAPPO
+    (b_vdn_runner.run_condition_mappo) except the centralized critic sees the JOINT
+    state (all A per-agent pools concatenated, dim A*M) because there is no single
+    shared pool here. Matched seeds + SAME sampler draw order as the off-policy branch.
+
+    NOTE: this MAPPO variant for the per-agent env is an extension of the b_vdn_runner
+    MAPPO spec (which defines V over the shared state); the joint-state critic is the
+    faithful centralized-critic choice for a per-agent env.
+    """
+    rng = np.random.default_rng(seed)
+    torch.manual_seed(seed)
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(seed)
+    R, A = n_reps, N_AGENTS
+    N = R * A
+    M = N_RESOURCES
+    obs_dim = M
+    act_dim = action_map_gpu.shape[0]
+
+    actor = BatchedQNet(N, obs_dim, act_dim, HIDDEN_DIM, device)
+    critic = BatchedQNet(R, A * M, 1, HIDDEN_DIM, device)   # centralized V over joint state
+    optimizer = torch.optim.Adam(actor.params() + critic.params(), lr=LR)
+
+    weights_np = np.zeros((R, A, M), dtype=np.float32)
+    targets_np = np.zeros((R, A, M), dtype=np.float32)
+    for r in range(R):
+        w, t = sampler(rng, A, M, rho, sigma)
+        weights_np[r] = w
+        targets_np[r] = t
+    weights_t = torch.tensor(weights_np, device=device)
+    targets_t = torch.tensor(targets_np, device=device)
+
+    noise_gen = torch.Generator(device=device)
+    noise_gen.manual_seed(int(rng.integers(0, 2**62)))
+    action_map_delta = action_map_gpu.float()
+    probe = probe_gpu.unsqueeze(0).expand(N, -1, -1)
+    noise_std = cond_eps ** 0.5
+
+    def train_reset():
+        return torch.rand(R, A, M, device=device) * CAPACITY
+
+    def eval_reset(gen):
+        return torch.rand(R, A, M, device=device, generator=gen) * CAPACITY
+
+    def observe(st):
+        return st  # each agent observes its OWN pool
+
+    def step_fn(st, deltas):
+        ns = (st + deltas).clamp(0.0, CAPACITY)  # ENV-DIFF: own delta only
+        d = ns - targets_t
+        return ns, (weights_t * -(d ** 2)).sum(dim=2)
+
+    def global_state(st):
+        return st.reshape(R, A * M)  # centralized critic sees the joint state
+
+    per_rep = _mappo_train(actor, critic, optimizer, train_reset, eval_reset, observe,
+                           step_fn, global_state, action_map_delta, probe, R, A, obs_dim,
+                           act_dim, n_episodes, device, noise_gen, noise_std, MAPPOConfig(),
+                           seed + 1_000_003, n_eval_episodes, eval_eps)
+    for row in per_rep:
+        row.update({"mode": "mappo", "rho": rho, "sigma": sigma, "epsilon": cond_eps,
+                    "env": "separable"})
+    return per_rep
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--modes", nargs="+", default=["iql", "vdn"])
+    ap.add_argument("--modes", nargs="+", default=["iql", "vdn", "mappo"])
     ap.add_argument("--rhos", nargs="+", type=float,
                     default=[-0.33, -0.2, -0.1, 0.0, 0.2, 0.4, 0.6, 0.8])
     ap.add_argument("--sigmas", nargs="+", type=float, default=[0.6, 1.0])

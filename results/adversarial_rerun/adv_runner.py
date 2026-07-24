@@ -40,7 +40,7 @@ from friction_marl.experiments.factorial_design import build_action_map  # noqa:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dgp", choices=["equicorr", "team"], default="equicorr")
-    ap.add_argument("--modes", nargs="+", default=["iql", "vdn"])
+    ap.add_argument("--modes", nargs="+", default=["iql", "vdn", "mappo"])
     ap.add_argument("--rhos", nargs="+", type=float,
                     default=[-0.33, -0.2, -0.1, 0.0, 0.2, 0.4, 0.6, 0.8])
     ap.add_argument("--sigmas", nargs="+", type=float, default=[0.6, 1.0])

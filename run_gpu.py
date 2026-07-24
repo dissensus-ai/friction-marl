@@ -231,12 +231,13 @@ def run_condition(
             # Observations: each agent sees the state -> (R, A, M) -> (N, M)
             obs_all = states.unsqueeze(1).expand(-1, N_AGENTS, -1)  # (R, A, M)
 
-            # Add observation noise
+            # Add observation noise ~ N(0, eps*I): std = sqrt(eps) so covariance = eps*I
+            # (eps=0 stays 0).
             if cond_epsilon > 0:
                 noise = torch.randn(
                     n_reps, N_AGENTS, N_RESOURCES,
                     device=device, generator=noise_gen
-                ) * cond_epsilon
+                ) * (cond_epsilon ** 0.5)
                 obs_all = obs_all + noise
 
             obs_flat = obs_all.reshape(N, obs_dim)  # (N, M)
@@ -265,10 +266,18 @@ def run_condition(
             utility = -(diff ** 2)
             rewards = (weights_t * utility).sum(dim=2)  # (R, A)
 
-            # Next obs (clean, no noise — matches original env.step() behavior)
-            next_obs_flat = new_states.unsqueeze(1).expand(
-                -1, N_AGENTS, -1
-            ).reshape(N, obs_dim)
+            # Next obs: store with FRESH matched i.i.d. noise (same std sqrt(eps)) so TD
+            # targets don't bootstrap on a privileged denoised state. The stored current
+            # obs (obs_flat) is noisy, so the stored next obs must be too (obs ~ N(0, eps*I)).
+            # Draw fresh noise -- do NOT reuse the current step's noise tensor.
+            next_obs_all = new_states.unsqueeze(1).expand(-1, N_AGENTS, -1)
+            if cond_epsilon > 0:
+                next_noise = torch.randn(
+                    n_reps, N_AGENTS, N_RESOURCES,
+                    device=device, generator=noise_gen
+                ) * (cond_epsilon ** 0.5)
+                next_obs_all = next_obs_all + next_noise
+            next_obs_flat = next_obs_all.reshape(N, obs_dim)
 
             # Terminal
             done_val = 1.0 if step == EPISODE_LENGTH - 1 else 0.0
