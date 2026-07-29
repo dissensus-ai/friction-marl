@@ -439,9 +439,16 @@ def _mappo_train(actor, critic, optimizer, train_reset_fn, eval_reset_fn, observ
         adv, ret = compute_gae(buf_rteam, buf_val, buf_done, GAMMA, cfg.gae_lambda, last_v)
 
         # each agent in a replication shares that replication's TEAM advantage
-        adv_N = adv.unsqueeze(2).expand(T, R, A).reshape(T, N)
         if cfg.normalize_returns:
-            adv_N = (adv_N - adv_N.mean()) / (adv_N.std() + 1e-8)
+            # Normalise WITHIN each replication, over its own T timesteps only, so that
+            # replication r's policy gradient depends solely on r's own returns.
+            # A global reduction over the flattened (T, R*A) tensor rescales every seed
+            # by the other seeds' statistics, which couples the replications and voids
+            # the independence the paper's inference rests on (main.tex: "30 genuinely
+            # independent seeds per condition; this is not a pseudoreplicated design").
+            # adv is (T, R); reducing over dim=0 keeps each replication separate.
+            adv = (adv - adv.mean(dim=0, keepdim=True)) / (adv.std(dim=0, keepdim=True) + 1e-8)
+        adv_N = adv.unsqueeze(2).expand(T, R, A).reshape(T, N)
 
         obs_NT = buf_obs.permute(1, 0, 2)     # (N, T, obs)
         act_NT = buf_act.permute(1, 0)        # (N, T)

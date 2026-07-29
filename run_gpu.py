@@ -32,6 +32,15 @@ from friction_marl.experiments.factorial_design import (
 )
 from friction_marl.experiments.analysis import run_analysis
 from friction_marl.utils.metrics import compute_convergence_time
+
+# Frozen held-out evaluation, shared with the mode-comparison runner so that every arm
+# of the battery reports eval reward under ONE protocol rather than two that can drift.
+# Safe to import: b_vdn_runner guards its CLI behind __main__, has no module-level side
+# effects, and every constant it closes over (N_RESOURCES, EPISODE_LENGTH, CAPACITY,
+# N_AGENTS, HIDDEN_DIM) is identical to this module's.
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).parent / "results" / "review_upgrade"))
+from b_vdn_runner import evaluate_frozen  # noqa: E402
 from friction_marl.utils.visualization import (
     plot_heatmaps,
     plot_learning_curves,
@@ -57,6 +66,11 @@ CAPACITY = 10.0
 EPISODE_LENGTH = 100
 POLICY_SAMPLE_INTERVAL = 200
 LEARNING_CURVE_WINDOW = 50
+
+# Held-out frozen-evaluation episodes per replication. Kept at 50 (not the 100 used by
+# the mode comparison) because this factorial runs 125 conditions: each eval pass costs
+# ~EVAL_EPISODES/n_episodes of the training budget, so 2 passes x 50 adds ~10% overall.
+EVAL_EPISODES = 50
 
 
 # ---------------------------------------------------------------------------
@@ -344,6 +358,39 @@ def run_condition(
                     dist = (1 - eps) * dist + eps * (1.0 / act_dim)
                     policy_history[r][a].append(dist)
 
+    # --- Frozen held-out evaluation ---
+    # Training reward here is the mean over the last 100 TRAINING episodes, collected
+    # with eps-greedy exploration still on (EPS_END) and on NOISY observations. For the
+    # one factorial that varies epsilon, that statistic conflates "the learned policy is
+    # worse" with "the measurement is noisier". Two frozen passes separate them:
+    #   eval_reward_clean   -- greedy, held-out resets, NO obs-noise -> policy quality
+    #   eval_reward_matched -- same, but noise re-injected at this condition's epsilon
+    # Their difference isolates the measurement-noise component of any epsilon effect.
+    # Closures mirror the training-loop dynamics above exactly.
+    def _reset_fn(gen):
+        return torch.rand(n_reps, N_RESOURCES, device=device, generator=gen) * CAPACITY
+
+    def _observe_fn(s):
+        return s.unsqueeze(1).expand(-1, N_AGENTS, -1)
+
+    def _step_fn(s, deltas):
+        new_s = (s + deltas.sum(dim=1)).clamp(0.0, CAPACITY)
+        diff = new_s.unsqueeze(1) - targets_t
+        rew = (weights_t * -(diff ** 2)).sum(dim=2)
+        return new_s, rew
+
+    eval_clean = evaluate_frozen(
+        q_net, _reset_fn, _observe_fn, _step_fn, action_map_delta,
+        n_reps, N_AGENTS, obs_dim, act_dim, device,
+        eval_seed=seed + 10_000, n_eval_episodes=EVAL_EPISODES, eval_eps=0.0,
+    )  # (R, A)
+    eval_matched = evaluate_frozen(
+        q_net, _reset_fn, _observe_fn, _step_fn, action_map_delta,
+        n_reps, N_AGENTS, obs_dim, act_dim, device,
+        eval_seed=seed + 20_000, n_eval_episodes=EVAL_EPISODES,
+        eval_eps=cond_epsilon,
+    )  # (R, A)
+
     # --- Build output ---
     rep_rows = []
     policy_dict = {}
@@ -369,6 +416,11 @@ def run_condition(
             "replication": r,
             **{f"agent_{i}_reward": float(last_rew[i]) for i in range(N_AGENTS)},
             "mean_reward": float(last_rew.mean()),
+            "eval_reward_clean": float(eval_clean[r].mean()),
+            "eval_reward_matched": float(eval_matched[r].mean()),
+            # train - eval(clean): how much of training reward is exploration/noise
+            # rather than learned policy quality.
+            "eval_gap": float(last_rew.mean() - eval_clean[r].mean()),
             "convergence_time": float(np.mean(conv_times)),
             "policy_key": key,
         })
