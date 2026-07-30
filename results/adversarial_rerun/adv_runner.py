@@ -41,8 +41,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dgp", choices=["equicorr", "team"], default="equicorr")
     ap.add_argument("--modes", nargs="+", default=["iql", "vdn", "mappo"])
-    ap.add_argument("--rhos", nargs="+", type=float,
-                    default=[-0.33, -0.2, -0.1, 0.0, 0.2, 0.4, 0.6, 0.8])
+    # One flag, TWO meanings -- this is the trap. For --dgp equicorr the control IS the
+    # signed pairwise correlation rho in [-1/(n-1), 1]. For --dgp team it is the opposition
+    # STRENGTH opp in [0, 1], which enters squared (within-team corr +opp^2, between-team
+    # -opp^2), so its sign is meaningless and the equicorr default silently duplicates its
+    # negative half while never reaching opp=1 where the design's value lies. Leaving the
+    # default unset per-dgp below, and validating the range, so that cannot happen again.
+    ap.add_argument("--rhos", "--opps", dest="rhos", nargs="+", type=float, default=None,
+                    help="equicorr: signed rho in [-1/(n-1), 1]. team: opposition strength "
+                         "opp in [0, 1] (sign has NO effect; it enters as opp^2).")
     ap.add_argument("--sigmas", nargs="+", type=float, default=[0.6, 1.0])
     ap.add_argument("--epsilon", type=float, default=0.0)
     ap.add_argument("--n-reps", type=int, default=30)
@@ -55,8 +62,22 @@ def main():
     # --- swap sampler: control knob (passed in place of 'alpha') is rho or opp ---
     if args.dgp == "equicorr":
         sampler = sample_agent_params_equicorr
+        ctrl_name = "rho"
+        if args.rhos is None:
+            args.rhos = [-0.33, -0.2, -0.1, 0.0, 0.2, 0.4, 0.6, 0.8]
     else:
         sampler = sample_agent_params_team
+        ctrl_name = "opp"
+        if args.rhos is None:
+            args.rhos = [0.0, 0.25, 0.5, 0.75, 1.0]
+        bad = [v for v in args.rhos if v < 0.0 or v > 1.0]
+        if bad:
+            ap.error(
+                f"--dgp team takes opposition STRENGTH opp in [0,1], got {bad}. "
+                "opp enters as opp^2, so negative values silently duplicate their positive "
+                "mirror (mean pairwise corr = -opp^2/3 either way) and produce a spurious "
+                "slope if regressed on. Pass e.g. --opps 0 0.25 0.5 0.75 1.0."
+            )
     vr.sample_agent_params = lambda rng, A, M, ctrl, sigma: sampler(rng, A, M, ctrl, sigma)
 
     if args.device == "cpu":
@@ -90,9 +111,11 @@ def main():
             rows = vr.run_condition(rho, s, args.epsilon, mode, args.n_reps,
                                     args.n_episodes, device, cond_seeds[(rho, s)],
                                     action_map_gpu, probe_gpu)
-            # relabel alpha->rho for clarity
+            # relabel alpha -> the control's REAL name: rho (signed) or opp (strength).
+            # Naming the team control "rho" is what invited regressing a squared quantity
+            # as if it were signed.
             for r in rows:
-                r["rho"] = r.pop("alpha")
+                r[ctrl_name] = r.pop("alpha")
                 r["dgp"] = args.dgp
             all_rows.extend(rows)
             done += 1

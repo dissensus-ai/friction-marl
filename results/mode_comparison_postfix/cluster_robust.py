@@ -57,5 +57,8 @@ def report(fname, xvar, label):
 
 if __name__ == "__main__":
     report("adv_equicorr.csv", "rho", "Adversarial equicorrelated DGP - slope on signed rho")
-    report("adv_team.csv", "rho", "Adversarial team/blocked DGP - slope on signed rho")
+    # Team control is opposition STRENGTH opp in [0,1], not a signed rho: it enters as opp^2
+    # (mean pairwise corr = -opp^2/3). Slope-on-opp matches how the paper reports it
+    # (gap vs opposition strength); slope-on-"rho" over a signed grid does not.
+    report("adv_team_opp.csv", "opp", "Adversarial team/block DGP - slope on opposition strength")
     report("modes_iql_vdn_mappo.csv", "alpha", "Mode comparison grid - slope on alpha")
