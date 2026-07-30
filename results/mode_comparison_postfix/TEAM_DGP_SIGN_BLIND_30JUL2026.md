@@ -1,3 +1,21 @@
+> # ⛔ RETRACTED 30 Jul 2026 — same day, before use
+>
+> **The paper is correct. The DGP is correct. The invocation that produced this was wrong.**
+>
+> `main.tex:1278` already documents `opp in [0,1]`, within-team `+opp^2`, between-team `-opp^2`, and the
+> paper sweeps opp to **1.0**, plotting gap against *opposition strength* — it never treats the team
+> design as a signed-rho sweep. There is no fourth artifact and nothing in the paper needs correcting.
+>
+> Root cause: `adv_runner.py` has ONE `--rhos` flag for BOTH DGPs, defaulting to equicorr's grid
+> `[-0.33..0.8]`. Running `--dgp team` with it feeds negative values into `opp` (squared away, so the
+> negative half duplicates the positive half) and never reaches opp=1.0. Regressing on that column as
+> signed rho manufactured the iql -0.425.
+>
+> **Still true below:** team correlation goes as `opp^2` with mean pairwise `-opp^2/3` (documented,
+> intended); equicorr realises nominal rho to 3dp and is clean; the shared `--rhos` flag is a real
+> usability trap worth fixing. **The team arm must be re-run over opp in [0,0.25,0.5,0.75,1.0]** --
+> the 30 Jul team run is void.
+
 # The team/block DGP is sign-blind — control check #1 applied to our own robustness design
 
 **Date:** 30 Jul 2026
