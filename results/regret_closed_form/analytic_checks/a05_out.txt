@@ -1,0 +1,81 @@
+==============================================================================
+D0  SNE fixed-point convergence, and continuity of SNE at eps -> 0+
+    eps= 1.00e-04  max |c_new - c| after 600 damped iters = 2.688e+00
+    eps= 1.00e-02  max |c_new - c| after 600 damped iters = 1.642e+00
+    eps= 2.50e-01  max |c_new - c| after 600 damped iters = 4.187e-05
+    eps= 1.00e+00  max |c_new - c| after 600 damped iters = 1.776e-15
+    E[G] as eps -> 0+ (SNE) vs the exact Nash bracket at eps = 0:
+      SNE eps=1.0e-04: 0.43501
+      SNE eps=1.0e-03: 0.39983
+      SNE eps=1.0e-02: 0.29937
+      SNE eps=5.0e-02: 0.21594
+      exact Nash, welfare-BEST  selection : 0.19553
+      exact Nash, MINIMAL-move  selection : 24.76570
+      exact Nash, welfare-WORST selection : 48.35796   <-- selection matters
+==============================================================================
+D1  EXACT DECOMPOSITION.  G/Wbar = Var + bdisp^2 + 2 qres bdisp
+  proto  lam  gamma  eps |   E[G]   |   Wbar*Var   Wbar*bdisp^2  2Wbar*q*b | identity
+  sne    0.87  0.50 0.00 |   0.3917 |      0.1594       0.4456     -0.0558 | sum=  0.5492 resid=-0.1576
+  sne    0.87  0.50 0.25 |   0.1732 |      0.2864       0.1255     -0.0812 | sum=  0.3307 resid=-0.1576
+  sne    0.87  0.50 1.00 |   0.2320 |      0.2864       0.1920     -0.0889 | sum=  0.3895 resid=-0.1576
+  sne    0.21  0.98 0.00 |   0.1109 |      0.1674       0.1210     -0.0304 | sum=  0.2581 resid=-0.1472
+  sne    0.21  0.98 0.25 |   0.3650 |      0.5314       0.0749     -0.0941 | sum=  0.5122 resid=-0.1472
+  sne    0.21  0.98 1.00 |   0.6622 |      0.7696       0.1469     -0.1071 | sum=  0.8094 resid=-0.1472
+  naive  0.87  0.50 0.00 |   0.7367 |      0.7568       0.2266     -0.0892 | sum=  0.8943 resid=-0.1576
+  naive  0.87  0.50 0.25 |   0.2899 |      0.3947       0.1369     -0.0841 | sum=  0.4475 resid=-0.1576
+  naive  0.87  0.50 1.00 |   0.2216 |      0.2584       0.2122     -0.0914 | sum=  0.3792 resid=-0.1576
+  naive  0.21  0.98 0.00 |   2.6052 |      2.3165       0.4808     -0.0449 | sum=  2.7524 resid=-0.1472
+  naive  0.21  0.98 0.25 |   1.8019 |      1.8747       0.1521     -0.0777 | sum=  1.9491 resid=-0.1472
+  naive  0.21  0.98 1.00 |   0.9526 |      1.0245       0.1908     -0.1155 | sum=  1.0998 resid=-0.1472
+  (resid = the planner's own transient variance Wbar*var_p, i.e. the cost of
+   the <=6 steps it spends travelling to its optimum; it is NOT part of the
+   steady-state decomposition.)
+==============================================================================
+D2  THE lambda^2 LAW (eps = 0, SNE) after removing the lattice-access offset
+    lam=0.00  E[G]= 1.16685   (excess over lam=0:  0.00000)
+    lam=0.15  E[G]= 0.15893   (excess over lam=0: -1.00791)
+    lam=0.30  E[G]= 0.13362   (excess over lam=0: -1.03322)
+    lam=0.45  E[G]= 0.14059   (excess over lam=0: -1.02625)
+    lam=0.60  E[G]= 0.19362   (excess over lam=0: -0.97323)
+    lam=0.87  E[G]= 0.37664   (excess over lam=0: -0.79020)
+    lam=1.20  E[G]= 0.72260   (excess over lam=0: -0.44425)
+    lam=1.60  E[G]= 1.30253   (excess over lam=0:  0.13568)
+    lam=2.20  E[G]= 2.42145   (excess over lam=0:  1.25460)
+/home/purrpower/Resurrexi/projects/papers/github-repos/friction-marl/results/regret_closed_form/analytic_checks/a05_decomposition.py:102: RuntimeWarning: invalid value encountered in log
+  p = np.polyfit(np.log(L), np.log(Y), 1)
+    power-law on the OFFSET-REMOVED excess: exponent = nan   (theory: 2)
+/home/purrpower/Resurrexi/projects/papers/github-repos/friction-marl/results/regret_closed_form/analytic_checks/a05_decomposition.py:106: RuntimeWarning: invalid value encountered in log
+  p2 = np.polyfit(np.log(L[m]), np.log(Y[m]), 1)
+    restricted to lam >= 0.6 (deadzone negligible): exponent = nan
+==============================================================================
+D3  THE eps CHANNEL under a SINGLE protocol (no eps=0 discontinuity)
+  --- sne ---
+    eps=0.000 sd=0.000  E[G]=  0.3903   Var-term= 0.1650   disp-term= 0.4434
+    eps=0.005 sd=0.071  E[G]=  0.2746   Var-term= 0.1968   disp-term= 0.3052
+    eps=0.020 sd=0.141  E[G]=  0.1989   Var-term= 0.2226   disp-term= 0.2087
+    eps=0.050 sd=0.224  E[G]=  0.1539   Var-term= 0.2409   disp-term= 0.1493
+    eps=0.100 sd=0.316  E[G]=  0.1408   Var-term= 0.2586   disp-term= 0.1235
+    eps=0.250 sd=0.500  E[G]=  0.1749   Var-term= 0.2947   disp-term= 0.1301
+    eps=0.500 sd=0.707  E[G]=  0.2150   Var-term= 0.3087   disp-term= 0.1619
+    eps=1.000 sd=1.000  E[G]=  0.2396   Var-term= 0.2959   disp-term= 0.2036
+    eps=2.000 sd=1.414  E[G]=  0.2465   Var-term= 0.2544   disp-term= 0.2550
+    increment is NEGATIVE at small eps -> dE[G]/deps < 0 for sne
+  --- naive ---
+    eps=0.000 sd=0.000  E[G]=  0.7763   Var-term= 0.7904   disp-term= 0.2378
+    eps=0.005 sd=0.071  E[G]=  0.4860   Var-term= 0.5777   disp-term= 0.1540
+    eps=0.020 sd=0.141  E[G]=  0.4578   Var-term= 0.5611   disp-term= 0.1428
+    eps=0.050 sd=0.224  E[G]=  0.4191   Var-term= 0.5305   disp-term= 0.1358
+    eps=0.100 sd=0.316  E[G]=  0.3746   Var-term= 0.4896   disp-term= 0.1340
+    eps=0.250 sd=0.500  E[G]=  0.2997   Var-term= 0.4079   disp-term= 0.1446
+    eps=0.500 sd=0.707  E[G]=  0.2516   Var-term= 0.3362   disp-term= 0.1727
+    eps=1.000 sd=1.000  E[G]=  0.2302   Var-term= 0.2685   disp-term= 0.2240
+    eps=2.000 sd=1.414  E[G]=  0.2349   Var-term= 0.2145   disp-term= 0.2851
+    increment is NEGATIVE at small eps -> dE[G]/deps < 0 for naive
+==============================================================================
+D4  IDENTITY: renormalised DGP == equicorr DGP at rho(alpha)?
+    alpha=0.4: rho=0.3077  renorm(var,corr)=(1.0013,0.3116)  equicorr=(1.0008,0.3059)
+      E[G] renormalised=0.25310+-0.00427   equicorr=0.25172+-0.00430
+    alpha=0.8: rho=0.9412  renorm(var,corr)=(1.0007,0.9415)  equicorr=(0.9996,0.9409)
+      E[G] renormalised=0.11439+-0.00341   equicorr=0.11805+-0.00354
+
+wrote a05_results.json

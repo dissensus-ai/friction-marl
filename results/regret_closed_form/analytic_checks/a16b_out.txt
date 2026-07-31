@@ -1,0 +1,24 @@
+================================================================================================
+W2  contention-branch refit  Psi~(lambda) = a0(eps) + kappa_c(eps) lambda^2,
+    fitted on lambda > lambda*(eps) only.  Order-statistic bracket for kappa_c
+    (a07 K1): [Var(med-mean), E[(tau_(2)-mean)^2]] = [0.0482, 0.1986].
+   eps   lambda*  in design range? |    a0       kappa_c     R^2    log-log exp  n   kappa_c in bracket?
+      0   1.6000    above         | -0.0170  +0.0752  0.99255    1.937      3   YES
+   0.01   1.3500    above         | -0.0034  +0.0634  0.98267    1.844      4   YES
+   0.25   1.0000    INSIDE        | +0.0578  +0.0340  0.96273    1.687      6   no
+      1   0.7500    INSIDE        | +0.0738  +0.0185  0.97164    1.648      8   no
+
+  READINGS
+  * lambda* falls monotonically in eps (1.60 -> 1.35 -> 1.00 -> 0.75): noise
+    shrinks the herding branch, the same mechanism as kappa falling (eq. 6.3).
+  * at eps <= 0.01, lambda* > 1.1547 = the equicorrelated PSD cap, so the whole
+    design sits on the DECREASING branch and dG/drho > 0 everywhere.
+  * kappa_c(naive, eps=0) = 0.0752 sits INSIDE the order-statistic bracket, near
+    its median-attractor end (0.0482) -- i.e. for naive delegation the contention
+    branch really is the median-vs-mean displacement of eq. (5.2).
+  * kappa_c also falls in eps (0.075 -> 0.019): the same de-synchronisation.
+  * the log-log exponent drifts 1.94 -> 1.65 as eps grows because the fit window
+    extends further down toward lambda*, where the quadratic law is not yet
+    asymptotic; at eps = 0 (window furthest from lambda*) it is 1.94 vs theory 2.
+
+wrote a16b_results.json

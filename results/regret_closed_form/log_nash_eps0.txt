@@ -1,0 +1,4 @@
+{'family': 'implemented', 'control': 0.0, 'G_eps0_convention': 1.1456953364821785, 'G_eps_0plus': 1.1456953364821785, 'jump': 0.0, 'jump_pct': 0.0}
+{'family': 'implemented', 'control': 0.8, 'G_eps0_convention': 0.10158056213225841, 'G_eps_0plus': 0.10093644223330828, 'jump': 0.0006441198989501351, 'jump_pct': 0.6381440485699885}
+{'family': 'equicorr', 'control': -0.33, 'G_eps0_convention': 1.9521983303236574, 'G_eps_0plus': 1.9521983303236574, 'jump': 0.0, 'jump_pct': 0.0}
+{'family': 'equicorr', 'control': 0.8, 'G_eps0_convention': 0.24137291601806646, 'G_eps_0plus': 0.24137291601806646, 'jump': 0.0, 'jump_pct': 0.0}

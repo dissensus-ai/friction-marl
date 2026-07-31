@@ -1,0 +1,39 @@
+==========================================================================
+E1  eps -> 0+ for the EXACTLY computable naive protocol (lam=0.87 gamma=0.5)
+    eps=  0.0e+00  sd=0.00e+00  E[G]= 2.29661   Var-term= 2.3640   disp-term= 0.6897
+    eps=  1.0e-08  sd=1.00e-04  E[G]= 1.46085   Var-term= 1.7075   disp-term= 0.4883
+    eps=  1.0e-06  sd=1.00e-03  E[G]= 1.45974   Var-term= 1.7068   disp-term= 0.4883
+    eps=  1.0e-04  sd=1.00e-02  E[G]= 1.46072   Var-term= 1.7133   disp-term= 0.4841
+    eps=  1.0e-03  sd=3.16e-02  E[G]= 1.46129   Var-term= 1.7278   disp-term= 0.4715
+    eps=  1.0e-02  sd=1.00e-01  E[G]= 1.41574   Var-term= 1.7185   disp-term= 0.4355
+    eps=  5.0e-02  sd=2.24e-01  E[G]= 1.24881   Var-term= 1.5932   disp-term= 0.3978
+    eps=  1.0e-01  sd=3.16e-01  E[G]= 1.11292   Var-term= 1.4659   disp-term= 0.3950
+    eps=  2.5e-01  sd=5.00e-01  E[G]= 0.89189   Var-term= 1.2196   disp-term= 0.4328
+    eps=  5.0e-01  sd=7.07e-01  E[G]= 0.75565   Var-term= 1.0068   disp-term= 0.5233
+    eps=  1.0e+00  sd=1.00e+00  E[G]= 0.69579   Var-term= 0.8063   disp-term= 0.6799
+    eps=  2.0e+00  sd=1.41e+00  E[G]= 0.70718   Var-term= 0.6507   disp-term= 0.8564
+    JUMP at eps -> 0+ : E[G](0) = 2.29661 vs E[G](1e-8) = 1.46085
+==========================================================================
+E2  the lambda law, refit (SNE at eps=1e-4; lam=0 is a knife-edge, excluded)
+    lam=0.10  E[G]= 0.57134
+    lam=0.20  E[G]= 0.42467
+    lam=0.30  E[G]= 0.41876
+    lam=0.45  E[G]= 0.43665
+    lam=0.60  E[G]= 0.60231
+    lam=0.87  E[G]= 1.14220
+    lam=1.20  E[G]= 2.22848
+    lam=1.60  E[G]= 3.98204
+    lam=2.20  E[G]= 7.49994
+    lam=3.00  E[G]=13.47845
+    fit E[G] = a + b*lam^2 on lam>=0.45 :  a=0.1010  b=1.4960   R^2=0.99966
+    per-resource contention coefficient kappa_c = b/(3*E[Wbar]) = 0.2078
+    theory bracket for kappa_c: [Var(med-mean), E[(tau_(2)-mean)^2]]/(3/4) = [0.0643, 0.2648]
+    log-log exponent of the offset-removed excess: 1.995  (theory 2)
+==========================================================================
+E3  the same law under the exact NASH correspondence at eps = 0 (welfare-best)
+    lam=0.30  E[G]= 0.06702
+    lam=0.60  E[G]= 0.14137
+    lam=0.87  E[G]= 0.25052
+    lam=1.20  E[G]= 0.53194
+    lam=1.60  E[G]= 1.29660
+    lam=2.20  E[G]= 3.71412

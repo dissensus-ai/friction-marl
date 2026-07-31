@@ -1,0 +1,10 @@
+V1 OK  environment constants confirmed at source
+V2 OK  DGP reimplementations exact (max |diff| 4.44e-16)
+V3 OK  closure verified; 1331x729 holds only for integer starts, 9261x729 generically
+V4 OK  3-D backward induction == separable per-resource BI (max err 3.98e-13)
+V5 OK  planner long-run value == static best lattice point; mean-over-starts T=100 transient cost = 0.5665/step (cf. PLANNER_TRANSIENT.csv, 0.535 over the full grid)
+V6 OK  exact naive chain == forward simulation (max |diff| 1.04e-04)
+V7 OK  stage-Nash chain == forward simulation (max |diff| 1.39e-03)
+V8 OK  Bayes decision rule monotone in shat; Bayes->CE as eps->0 (max |th1 gap| 0.049 at eps=1e-4 vs 5.745 at eps=1.0)
+
+ALL VALIDATION CHECKS PASSED -> VALIDATION.json

@@ -1,0 +1,59 @@
+====================================================================================
+P1  PAIRED eps ladder (same preference draws at every eps).  naive protocol,
+    which is computed EXACTLY at eps=0, so the 0+ limit is decisive.
+  --- equicorr rho=0   (lambda=1) ---
+      eps       0.0e+00   1.0e-10   1.0e-08   1.0e-07   1.0e-06   1.0e-05   1.0e-04   1.0e-03   4.0e-03   1.0e-02   4.0e-02   1.0e-01
+      E[G]      2.30950   1.46471   1.46356   1.46330   1.46367   1.46557   1.46738   1.46736   1.44878   1.41267   1.27773   1.10912
+      dG       8.45e-01  0.00e+00 -1.15e-03 -1.41e-03 -1.03e-03  8.63e-04  2.67e-03  2.65e-03 -1.59e-02 -5.20e-02 -1.87e-01 -3.56e-01
+      fit dG = c1*sqrt(eps) + c2*eps :  c1=+0.01942  c2=-4.79955   R^2=0.99731
+      pure linear dG = c*eps         :  c =-4.69451                    R^2=0.99727
+      cusp size |c1|*sqrt(0.01)/E[G](0+) = 0.133%   |  JUMP at eps=0: +0.84479 (+57.68%)
+  --- equicorr rho=0.8 (lambda=0.447) ---
+      eps       0.0e+00   1.0e-10   1.0e-08   1.0e-07   1.0e-06   1.0e-05   1.0e-04   1.0e-03   4.0e-03   1.0e-02   4.0e-02   1.0e-01
+      E[G]      7.18572   6.54091   6.53904   6.54055   6.54176   6.54911   6.58026   6.63939   6.65308   6.58964   6.13098   5.44360
+      dG       6.45e-01  0.00e+00 -1.87e-03 -3.66e-04  8.41e-04  8.20e-03  3.93e-02  9.85e-02  1.12e-01  4.87e-02 -4.10e-01 -1.10e+00
+      fit dG = c1*sqrt(eps) + c2*eps :  c1=+3.38681  c2=-27.26108   R^2=0.99592
+      pure linear dG = c*eps         :  c =-8.94509                    R^2=0.70702
+      cusp size |c1|*sqrt(0.01)/E[G](0+) = 5.178%   |  JUMP at eps=0: +0.64480 (+9.86%)
+  --- implemented a=0  (lambda=1) ---
+      eps       0.0e+00   1.0e-10   1.0e-08   1.0e-07   1.0e-06   1.0e-05   1.0e-04   1.0e-03   4.0e-03   1.0e-02   4.0e-02   1.0e-01
+      E[G]      2.30554   1.46655   1.46548   1.46597   1.46633   1.46636   1.46848   1.46710   1.45064   1.41643   1.28151   1.11198
+      dG       8.39e-01  0.00e+00 -1.07e-03 -5.85e-04 -2.25e-04 -1.88e-04  1.93e-03  5.51e-04 -1.59e-02 -5.01e-02 -1.85e-01 -3.55e-01
+      fit dG = c1*sqrt(eps) + c2*eps :  c1=+0.01792  c2=-4.73634   R^2=0.99855
+      pure linear dG = c*eps         :  c =-4.63943                    R^2=0.99850
+      cusp size |c1|*sqrt(0.01)/E[G](0+) = 0.122%   |  JUMP at eps=0: +0.83899 (+57.21%)
+====================================================================================
+P2  MECHANISM of the eps=0 jump: at eps=0 the agent's argmin can TIE (all
+    three moves clamp to the same post-state, or two moves tie exactly).
+    Any eps>0 breaks every tie with probability 1.
+    fraction of (agent, lattice-state) pairs at which the eps=0 rule is
+    decided by the TIE CONVENTION rather than by a strict inequality: 0.0716
+====================================================================================
+P3  kappa, the aggregate feedback gain.  closed form vs finite difference,
+    and the flip-bifurcation boundary kappa = 2.
+    eps=0.05: closed form [3.22274  2.749222 2.026274]  finite diff [3.22274  2.749222 2.026274]   max err 1.28e-10
+    eps=0.25: closed form [2.886722 2.672889 2.059694]  finite diff [2.886722 2.672889 2.059694]   max err 4.16e-11
+    eps=1.00: closed form [2.305915 2.200757 1.857063]  finite diff [2.305915 2.200757 1.857063]   max err 1.79e-11
+    median kappa at the chain's MODAL state, and P(kappa >= 2):
+      lambda |      eps=0.01    eps=0.05    eps=0.25    eps=0.5     eps=1       eps=2       
+       0.45  | med       2.319      2.911      2.935      2.670      2.317      1.886
+             | P>=2      0.525      0.669      0.719      0.715      0.676      0.277
+       0.71  | med       2.467      2.780      2.738      2.519      2.214      1.830
+             | P>=2      0.551      0.703      0.781      0.766      0.681      0.153
+       1.00  | med       2.519      2.725      2.638      2.437      2.153      1.797
+             | P>=2      0.557      0.713      0.809      0.781      0.658      0.100
+       1.15  | med       2.505      2.684      2.577      2.420      2.158      1.803
+             | P>=2      0.557      0.702      0.762      0.734      0.637      0.152
+    asymptote: for targets within O(sqrt(eps)) of x, kappa -> 2 n phi(0)/sqrt(eps)
+               = 3.1915/sqrt(eps)  => kappa < 2 once eps > 2.546
+====================================================================================
+P4  vD (per-step injected variance) saturates at n = 4
+    eps=   0.01  sd=  0.100  vD= 0.1349   (limit n = 4)
+    eps=   0.25  sd=  0.500  vD= 0.8364   (limit n = 4)
+    eps=   1.00  sd=  1.000  vD= 1.7941   (limit n = 4)
+    eps=   4.00  sd=  2.000  vD= 2.8786   (limit n = 4)
+    eps=  25.00  sd=  5.000  vD= 3.6126   (limit n = 4)
+    eps= 400.00  sd= 20.000  vD= 3.9156   (limit n = 4)
+
+wrote a13_results.json
+a13 exit=0

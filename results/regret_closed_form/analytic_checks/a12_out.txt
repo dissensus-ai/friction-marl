@@ -1,0 +1,1 @@
+a12 retired mid-run for cost (the 600-iteration SNE conjecture fixed point at R=30000 costs ~70-150 s per cell). Its R1 (closed forms vs Monte Carlo) is reproduced cheaply in a12b_dgp_map.py and symbolically in a19_symbolic.py; its R2 (the DGP collapse) is established directly by a05 D4 and a13 P1's third ladder.

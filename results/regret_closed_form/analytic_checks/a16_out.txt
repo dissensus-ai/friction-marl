@@ -1,0 +1,13 @@
+==========================================================================================
+W1  Psi~(lambda) over a range that STRADDLES the equicorrelated PSD cap
+    (cap: lambda <= sqrt(n/(n-1)) = 1.1547).  Psi~ = E[G] / (3 E[Wbar]), E[Wbar]=2.4
+  [naive eps=  0.0]   0.604  0.580  0.566  0.557  0.511  0.436  0.366  0.321  0.287  0.261  0.242  0.241  0.294  0.434  0.668
+                     lambda* = 1.6000  (Psi~min=0.2409);  reachable cap = 1.1547 -> lambda* is ABOVE the design range
+  [naive eps= 0.01]   0.609  0.591  0.537  0.453  0.343  0.267  0.221  0.198  0.183  0.173  0.170  0.182  0.234  0.369  0.585
+                     lambda* = 1.3500  (Psi~min=0.1703);  reachable cap = 1.1547 -> lambda* is ABOVE the design range
+  [naive eps= 0.25]   0.305  0.293  0.256  0.216  0.171  0.145  0.131  0.125  0.123  0.123  0.128  0.139  0.171  0.249  0.386
+                     lambda* = 1.0000  (Psi~min=0.1228);  reachable cap = 1.1547 -> lambda* is INSIDE the design range
+  [naive eps=  1.0]   0.120  0.118  0.112  0.106  0.100  0.097  0.096  0.097  0.098  0.101  0.106  0.115  0.135  0.179  0.253
+                     lambda* = 0.7500  (Psi~min=0.0959);  reachable cap = 1.1547 -> lambda* is INSIDE the design range
+a16 exit=143
+PARTIAL (SNE arm retired: the 600-iteration damped fixed point costs ~70-150 s per cell; the naive arm above is complete and is the concept the experiments implement -- see a14b/a16b/a18b)

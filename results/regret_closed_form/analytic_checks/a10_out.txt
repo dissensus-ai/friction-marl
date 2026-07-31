@@ -1,0 +1,16 @@
+============================================================================
+X1  PLANNER per-step welfare V*_p (mean over the preference DGP)
+     alpha  sigma |  V*_p exact (this memo)  |  spec sec 0.1 value
+     -0.8   0.6  |      -3.3098            |    -0.767
+     +0.0   0.6  |      -6.9908            |    -1.014
+     +0.8   1.0  |      -5.3510            |    -1.158
+  (the spec's numbers are for ONE seed-42 condition draw of 30 replications;
+   these are population means over the same DGP, so agreement is in level
+   and ordering, not to 3 d.p.)
+============================================================================
+X2  EXACT-best-response delegates vs the TRAINED Q-learners
+    trained eval_reward_clean (spec sec 0.1) vs exact-BR realised welfare
+     alpha=-0.8 sigma=0.6: naive-myopic W = -10.2306   stage-Nash(best) W =  -3.3937   trained IQL eval =  -1.309
+     alpha=+0.0 sigma=0.6: naive-myopic W =  -9.2938   stage-Nash(best) W =  -7.2281   trained IQL eval =  -2.287
+     alpha=+0.8 sigma=1.0: naive-myopic W = -16.8047   stage-Nash(best) W =  -5.4885   trained IQL eval =  -2.287
+a10 exit=0

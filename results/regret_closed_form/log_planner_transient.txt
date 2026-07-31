@@ -1,0 +1,30 @@
+     family  control  sigma  planner_static_perstep  planner_T100_perstep  planner_transient_perstep
+implemented    -0.80    0.2                 -0.8567               -1.0392                     0.1826
+implemented    -0.80    0.6                 -2.5662               -3.1144                     0.5482
+implemented    -0.80    1.0                 -4.1893               -5.0845                     0.8953
+implemented    -0.40    0.2                 -0.3610               -0.5375                     0.1765
+implemented    -0.40    0.6                 -1.0702               -1.6000                     0.5298
+implemented    -0.40    1.0                 -1.7477               -2.6130                     0.8652
+implemented     0.00    0.2                 -0.3577               -0.5336                     0.1758
+implemented     0.00    0.6                 -1.0405               -1.5682                     0.5277
+implemented     0.00    1.0                 -1.6974               -2.5592                     0.8617
+implemented     0.40    0.2                 -0.3372               -0.5149                     0.1777
+implemented     0.40    0.6                 -1.0096               -1.5430                     0.5334
+implemented     0.40    1.0                 -1.6527               -2.5241                     0.8713
+implemented     0.80    0.2                 -0.8170               -1.0022                     0.1851
+implemented     0.80    0.6                 -2.4638               -3.0197                     0.5559
+implemented     0.80    1.0                 -4.0314               -4.9395                     0.9081
+   equicorr    -0.33    0.2                 -0.0382               -0.2140                     0.1758
+   equicorr    -0.33    0.6                 -0.0290               -0.5570                     0.5280
+   equicorr    -0.33    1.0                 -0.0304               -0.8930                     0.8626
+   equicorr     0.00    0.2                 -0.3624               -0.5410                     0.1786
+   equicorr     0.00    0.6                 -1.0523               -1.5886                     0.5363
+   equicorr     0.00    1.0                 -1.7142               -2.5905                     0.8763
+   equicorr     0.40    0.2                 -0.7135               -0.8962                     0.1827
+   equicorr     0.40    0.6                 -2.1259               -2.6755                     0.5496
+   equicorr     0.40    1.0                 -3.4705               -4.3686                     0.8981
+   equicorr     0.80    0.2                 -1.0659               -1.2528                     0.1868
+   equicorr     0.80    0.6                 -3.1986               -3.7603                     0.5617
+   equicorr     0.80    1.0                 -5.2246               -6.1425                     0.9178
+
+mean planner transient per step: 0.5351

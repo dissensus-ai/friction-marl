@@ -1,0 +1,44 @@
+==============================================================================
+T3 / T1  DEADZONE-SIGN LAW and SEPARABILITY, vs brute force over 27 actions
+[PASS] T3 interior naive BR == per-coordinate clip(round(tau-shat),-1,1)  
+[PASS] T3 clamp-UNAWARE deadzone rule differs from the true argmax near the wall  differs on 2.4% of draws -> must use clamp-aware
+[PASS] T3 clamp-aware BR is a two-threshold monotone rule in u = shat + c  0 violations over 900 (tau, eps) cases
+[PASS] T1 the 27-action argmin factorises into 3 scalar argmins  
+==============================================================================
+T4  NASH CHARACTERISATION vs exhaustive 3^4 = 81 profile enumeration
+[PASS] T4 characterisation == exhaustive enumeration (interior)  
+[PASS] T4 a pure Nash equilibrium always exists  mean #distinct Nash aggregates = 1.00
+==============================================================================
+T2 / T5 / T7  chain vs a brute-force simulator of the FULL environment
+    eps=0.00  brute-force sim= -10.5600   exact chain= -10.5600   rel.err=1.01e-15
+    eps=0.00  brute-force sim= -11.3780   exact chain= -11.3780   rel.err=4.68e-16
+    eps=0.25  brute-force sim=  -3.5868   exact chain=  -3.5897   rel.err=8.10e-04
+    eps=0.50  brute-force sim=  -5.9948   exact chain=  -5.9973   rel.err=4.17e-04
+    eps=1.00  brute-force sim=  -6.2133   exact chain=  -6.2132   rel.err=1.80e-05
+    eps=0.75  brute-force sim=  -1.7737   exact chain=  -1.7737   rel.err=2.50e-06
+[PASS] T7 exact 21-state chain reproduces the full-environment simulator  max rel err 8.10e-04 (MC error of the simulator)
+==============================================================================
+T4b  Nash aggregate UNIQUENESS with the clamp, on the actual lattice
+[PASS] T4b a pure Nash aggregate exists at every reachable state  
+[FAIL] T4b the Nash aggregate is a.s. UNIQUE (clamp included)  max #Nash aggregates = 5, mean = 2.0447
+==============================================================================
+T5  IS G >= 0 POINTWISE?
+[PASS] T5 [naive] G >= 0 for every draw  min G = -3.011e-13
+[PASS] T5 [sne] G >= 0 for every draw  min G = 5.000e-13
+[PASS] T5 [nash] G >= 0 for every draw  min G = 0.000e+00
+==============================================================================
+T6  ZERO-DISPERSION LIMIT (eps=0): is there an irreducible baseline?
+    lambda   E[G] naive   E[G] Nash    P(G>0) naive   P(G>0) Nash
+     0.00       2.5350     0.02602         0.320        0.130
+     0.05       2.6232     0.02471         0.323        0.135
+     0.10       2.6002     0.02650         0.337        0.149
+     0.20       2.6278     0.03087         0.376        0.168
+     0.40       2.7067     0.04616         0.431        0.245
+     0.70       2.1280     0.08483         0.435        0.346
+     1.00       1.6775     0.16300         0.435        0.437
+
+    naive, 4 IDENTICAL targets tau=5, x0=3.4 -> [3.4, 7.4, 3.4, 7.4, 3.4, 7.4, 3.4]   (2-cycle, amplitude 4)
+    stage-Nash aggregates at x=3.4: [2]  -> post-state 5.4 = the nearest lattice point (quantization floor, exact)
+==============================================================================
+11/12 structural checks PASS
+a02 exit=0

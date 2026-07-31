@@ -1,0 +1,31 @@
+====================================================================================
+L2  where the clamp-aware BAYES argmin differs from the CE argmin
+    (Lemma 6.1: they are the same map wherever the clamp does not bind)
+    eps=0.01 sd=0.100 | disagree  3.789% | wall-distance med= 0.52 p90= 1.38 p99= 1.51 max= 1.54 | max/sd=15.39
+    eps=0.05 sd=0.224 | disagree  6.618% | wall-distance med= 0.87 p90= 1.78 p99= 1.98 max= 2.00 | max/sd= 8.94
+    eps=0.25 sd=0.500 | disagree  9.131% | wall-distance med= 0.92 p90= 1.78 p99= 1.98 max= 2.53 | max/sd= 5.07
+    eps=0.50 sd=0.707 | disagree 10.744% | wall-distance med= 0.86 p90= 1.76 p99= 1.98 max= 3.05 | max/sd= 4.31
+    eps=1.00 sd=1.000 | disagree 12.412% | wall-distance med= 0.89 p90= 1.77 p99= 1.99 max= 3.39 | max/sd= 3.39
+    => the disagreement set is a boundary layer: every disagreement lies
+       within a small multiple of the noise SD of a wall.  Off the wall the
+       two belief models are the SAME decision rule, exactly.
+====================================================================================
+L3  E[G], naive protocol, Bayes (clamp-aware) vs CE (interior rule), at the
+    NATIVE target location and SHIFTED +5 so the clamp is slack.
+  --- native  (mu ~ N(0,.), half the optima on the wall) ---
+      eps       0.0001     0.01     0.05     0.25      0.5        1
+      Bayes     1.4676   1.4287   1.2547   0.8962   0.7544   0.6900
+      CE        2.3772   2.6178   2.8375   3.4762   4.1269   5.1392
+      wedge%    -38.26   -45.42   -55.78   -74.22   -81.72   -86.57
+      sign of G(0.25)-G(0.01):  Bayes -1   CE +1
+      max |wedge| = 86.57%
+  --- shifted (+5: clamp slack) ---
+      eps       0.0001     0.01     0.05     0.25      0.5        1
+      Bayes    20.8660  22.0049  21.7567  19.7460  17.9785  16.1901
+      CE       20.8660  22.0049  21.7567  19.7461  17.9798  16.2077
+      wedge%      0.00     0.00     0.00    -0.00    -0.01    -0.11
+      sign of G(0.25)-G(0.01):  Bayes -1   CE -1
+      max |wedge| = 0.11%
+
+wrote a11b_results.json
+a11b exit=0

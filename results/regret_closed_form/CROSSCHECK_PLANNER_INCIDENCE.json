@@ -1,0 +1,49 @@
+{
+ "X7_planner": [
+  {
+   "alpha": -0.8,
+   "sigma": 0.6,
+   "W_star_ensemble": -2.7057480731748034,
+   "W_star_per_agent": -0.6764370182937008,
+   "irreducible_V_per_agent": -0.05383105384234124,
+   "quantization_floor_ensemble": 2.4904238578054385,
+   "spec_value": -0.767
+  },
+  {
+   "alpha": 0.0,
+   "sigma": 0.6,
+   "W_star_ensemble": -6.433055937180246,
+   "W_star_per_agent": -1.6082639842950615,
+   "irreducible_V_per_agent": -1.3457763460585317,
+   "quantization_floor_ensemble": 1.0499505529461188,
+   "spec_value": -1.014
+  },
+  {
+   "alpha": 0.8,
+   "sigma": 1.0,
+   "W_star_ensemble": -4.4242427143647856,
+   "W_star_per_agent": -1.1060606785911964,
+   "irreducible_V_per_agent": -0.08806786755319168,
+   "quantization_floor_ensemble": 4.071971244152018,
+   "spec_value": -1.158
+  }
+ ],
+ "X8_incidence": {
+  "alpha": 0.8,
+  "sigma": 0.2,
+  "eps": 0.0,
+  "R": 3000,
+  "G_mean": 2.327077272132278,
+  "Gi_mean_over_principals": 0.5817693180330695,
+  "stakes_weighted_mean": 0.5907874531398649,
+  "abs_diff": 0.009018135106795389,
+  "rel_diff_pct": 1.5501221579173707,
+  "Gi_min_mean": 0.4408600771211677,
+  "Gi_max_mean": 0.7252842656854288,
+  "spread_ratio": 1.6451575076191098,
+  "P_any_Gi_neg": 0.095,
+  "corr_si_Gi": 0.12299997221883059,
+  "sd_si_over_mean_si": 0.14465500007197105,
+  "Gi_sum_check": 0.0
+ }
+}

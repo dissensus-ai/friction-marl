@@ -1,0 +1,85 @@
+numericist columns: ['design', 'family', 'control', 'sigma', 'eps', 'rule', 'belief', 'ndraw', 'G_mean', 'G_se', 'G_median', 'F_mean']
+families: ['equicorr', 'implemented', 'renormalised']  sigmas: [np.float64(0.2), np.float64(0.6), np.float64(1.0)]  eps: [np.float64(0.0), np.float64(0.25), np.float64(0.5), np.float64(1.0)]
+
+================================================================================================
+X1  naive + Bayesian beliefs.  mine (independent code, T=100 paired planner)
+    vs numericist (core.py, Cesaro).   sigma = 0.6
+    family        control   eps  |   mine +- se     numericist +- se   |  ratio   |diff|/comb.se
+    equicorr     -0.330  0.00 |  0.8068+-0.0075    0.8259+-0.0351 |  0.977        0.5  <-- eps=0 knife-edge
+    equicorr     -0.330  0.25 |  0.0965+-0.0025    0.0836+-0.0098 |  1.155        1.3
+    equicorr     -0.330  0.50 |  0.0450+-0.0015    0.0361+-0.0053 |  1.247        1.6
+    equicorr     -0.330  1.00 |  0.0151+-0.0007    0.0099+-0.0017 |  1.533        2.9
+    equicorr     +0.000  0.00 |  2.3102+-0.0212    2.2825+-0.0966 |  1.012        0.3  <-- eps=0 knife-edge
+    equicorr     +0.000  0.25 |  0.8850+-0.0095    0.9123+-0.0452 |  0.970        0.6
+    equicorr     +0.000  0.50 |  0.7447+-0.0074    0.7777+-0.0359 |  0.957        0.9
+    equicorr     +0.000  1.00 |  0.6821+-0.0065    0.7239+-0.0317 |  0.942        1.3
+    equicorr     +0.400  0.00 |  4.4263+-0.0347    4.4859+-0.1590 |  0.987        0.4  <-- eps=0 knife-edge
+    equicorr     +0.400  0.25 |  2.1702+-0.0211    2.2873+-0.0992 |  0.949        1.2
+    equicorr     +0.400  0.50 |  1.7111+-0.0161    1.8002+-0.0764 |  0.951        1.1
+    equicorr     +0.400  1.00 |  1.4311+-0.0122    1.5020+-0.0580 |  0.953        1.2
+    equicorr     +0.800  0.00 |  7.1906+-0.0482    7.4400+-0.2178 |  0.966        1.1  <-- eps=0 knife-edge
+    equicorr     +0.800  0.25 |  4.3108+-0.0341    4.5288+-0.1559 |  0.952        1.4
+    equicorr     +0.800  0.50 |  3.2645+-0.0270    3.4292+-0.1240 |  0.952        1.3
+    equicorr     +0.800  1.00 |  2.3886+-0.0194    2.5033+-0.0901 |  0.954        1.2
+    implemented  -0.800  0.00 |  6.8988+-0.0532    6.9837+-0.2381 |  0.988        0.3  <-- eps=0 knife-edge
+    implemented  -0.800  0.25 |  4.5486+-0.0356    4.6259+-0.1657 |  0.983        0.5
+    implemented  -0.800  0.50 |  3.2786+-0.0276    3.3574+-0.1284 |  0.977        0.6
+    implemented  -0.800  1.00 |  2.2131+-0.0190    2.2759+-0.0885 |  0.972        0.7
+    implemented  -0.400  0.00 |  3.3337+-0.0286    3.5514+-0.1297 |  0.939        1.6  <-- eps=0 knife-edge
+    implemented  -0.400  0.25 |  1.1006+-0.0133    1.1524+-0.0606 |  0.955        0.8
+    implemented  -0.400  0.50 |  0.8210+-0.0094    0.8693+-0.0438 |  0.944        1.1
+    implemented  -0.400  1.00 |  0.6853+-0.0070    0.7431+-0.0334 |  0.922        1.7
+    implemented  +0.000  0.00 |  2.2791+-0.0210    2.2430+-0.0888 |  1.016        0.4  <-- eps=0 knife-edge
+    implemented  +0.000  0.25 |  0.8818+-0.0095    0.9019+-0.0411 |  0.978        0.5
+    implemented  +0.000  0.50 |  0.7427+-0.0074    0.7878+-0.0336 |  0.943        1.3
+    implemented  +0.000  1.00 |  0.6789+-0.0065    0.7386+-0.0303 |  0.919        1.9
+    implemented  +0.400  0.00 |  3.3973+-0.0288    3.4725+-0.1270 |  0.978        0.6  <-- eps=0 knife-edge
+    implemented  +0.400  0.25 |  1.1369+-0.0136    1.1527+-0.0609 |  0.986        0.3
+    implemented  +0.400  0.50 |  0.8505+-0.0097    0.8794+-0.0442 |  0.967        0.6
+    implemented  +0.400  1.00 |  0.7112+-0.0072    0.7411+-0.0330 |  0.960        0.9
+    implemented  +0.800  0.00 |  7.0402+-0.0536    7.1227+-0.2476 |  0.988        0.3  <-- eps=0 knife-edge
+    implemented  +0.800  0.25 |  4.6441+-0.0359    4.6913+-0.1667 |  0.990        0.3
+    implemented  +0.800  0.50 |  3.3537+-0.0279    3.3949+-0.1288 |  0.988        0.3
+    implemented  +0.800  1.00 |  2.2688+-0.0193    2.3001+-0.0888 |  0.986        0.3
+    renormalised -0.800  0.00 |  7.8416+-0.0547    7.9388+-0.2440 |  0.988        0.4  <-- eps=0 knife-edge
+    renormalised -0.800  0.25 |  5.5671+-0.0399    5.6367+-0.1842 |  0.988        0.4
+    renormalised -0.800  0.50 |  4.2128+-0.0322    4.2871+-0.1493 |  0.983        0.5
+    renormalised -0.800  1.00 |  2.9426+-0.0231    3.0098+-0.1072 |  0.978        0.6
+    renormalised -0.400  0.00 |  3.8322+-0.0315    3.9519+-0.1409 |  0.970        0.8  <-- eps=0 knife-edge
+    renormalised -0.400  0.25 |  1.8067+-0.0183    1.8621+-0.0811 |  0.970        0.7
+    renormalised -0.400  0.50 |  1.4462+-0.0139    1.4982+-0.0626 |  0.965        0.8
+    renormalised -0.400  1.00 |  1.2456+-0.0108    1.3108+-0.0499 |  0.950        1.3
+    renormalised +0.000  0.00 |  2.2791+-0.0210    2.2430+-0.0888 |  1.016        0.4  <-- eps=0 knife-edge
+    renormalised +0.000  0.25 |  0.8818+-0.0095    0.9019+-0.0411 |  0.978        0.5
+    renormalised +0.000  0.50 |  0.7427+-0.0074    0.7878+-0.0336 |  0.943        1.3
+    renormalised +0.000  1.00 |  0.6789+-0.0065    0.7386+-0.0303 |  0.919        1.9
+    renormalised +0.400  0.00 |  3.8947+-0.0318    3.9263+-0.1439 |  0.992        0.2  <-- eps=0 knife-edge
+    renormalised +0.400  0.25 |  1.8490+-0.0185    1.8472+-0.0811 |  1.001        0.0
+    renormalised +0.400  0.50 |  1.4844+-0.0141    1.5011+-0.0630 |  0.989        0.3
+    renormalised +0.400  1.00 |  1.2816+-0.0110    1.3225+-0.0508 |  0.969        0.8
+    renormalised +0.800  0.00 |  8.0707+-0.0551    8.1045+-0.2529 |  0.996        0.1  <-- eps=0 knife-edge
+    renormalised +0.800  0.25 |  5.6791+-0.0401    5.7229+-0.1861 |  0.992        0.2
+    renormalised +0.800  0.50 |  4.2993+-0.0324    4.3443+-0.1504 |  0.990        0.3
+    renormalised +0.800  1.00 |  3.0073+-0.0233    3.0451+-0.1079 |  0.988        0.3
+
+    eps > 0  (42 cells): median ratio 0.9702, IQR [0.9519, 0.9873], range [0.9192, 1.5326]
+    eps = 0  (14 cells): median ratio 0.9878, range [0.9387, 1.0161]
+
+================================================================================================
+X2  sigma-homogeneity cross-check: G(sigma)/G(0.6) vs sigma_eff(sigma)/0.6
+     sigma |   mine G   ratio to 0.6 |  sigma_eff/0.6  | numericist ratio
+      0.2  |   0.3072    0.3484     |     0.3333      |    0.3455
+Traceback (most recent call last):
+  File "/home/purrpower/Resurrexi/projects/papers/github-repos/friction-marl/results/regret_closed_form/analytic_checks/a15_cross_implementation.py", line 102, in <module>
+    nr = float(nb[nb.sigma == s].G_mean.iloc[0]) / nbase
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/home/purrpower/.local/share/mise/installs/python/latest/lib/python3.14/site-packages/pandas/core/indexing.py", line 1192, in __getitem__
+    return self._getitem_axis(maybe_callable, axis=axis)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/purrpower/.local/share/mise/installs/python/latest/lib/python3.14/site-packages/pandas/core/indexing.py", line 1753, in _getitem_axis
+    self._validate_integer(key, axis)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/purrpower/.local/share/mise/installs/python/latest/lib/python3.14/site-packages/pandas/core/indexing.py", line 1686, in _validate_integer
+    raise IndexError("single positional indexer is out-of-bounds")
+IndexError: single positional indexer is out-of-bounds
+a15 exit=1

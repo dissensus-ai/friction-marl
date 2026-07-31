@@ -1,0 +1,29 @@
+[
+ {
+  "alpha": -0.8,
+  "sigma": 0.6,
+  "W_star_ensemble": -2.3905460458417442,
+  "W_star_per_agent": -0.5976365114604361,
+  "minus_V_per_agent": -0.04601849547186951,
+  "spec": -0.767,
+  "ratio_spec_over_peragent": 1.2833887911662103
+ },
+ {
+  "alpha": 0.0,
+  "sigma": 0.6,
+  "W_star_ensemble": -5.951056900193858,
+  "W_star_per_agent": -1.4877642250484644,
+  "minus_V_per_agent": -1.2664724216133554,
+  "spec": -1.014,
+  "ratio_spec_over_peragent": 0.681559606641952
+ },
+ {
+  "alpha": 0.8,
+  "sigma": 1.0,
+  "W_star_ensemble": -3.5331348904694524,
+  "W_star_per_agent": -0.8832837226173631,
+  "minus_V_per_agent": -0.09628367310626827,
+  "spec": -1.158,
+  "ratio_spec_over_peragent": 1.3110170269736119
+ }
+]

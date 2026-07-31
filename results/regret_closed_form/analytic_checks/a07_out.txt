@@ -1,0 +1,24 @@
+==========================================================================
+K1  order-statistic constants for n = 4 standard normals
+    Var(mean)                    = 0.249897   (exact 1/4 = 0.25)
+    Var(median = (X_(2)+X_(3))/2)= 0.298018
+    Cov(median, mean)            = 0.249869   (theory: = Var(mean) = 0.25)
+    Var(median - mean)           = 0.048177   = V_med - 1/4 = 0.048018
+    E[(tau_(2)-mean)^2]          = 0.198569
+    E[(tau_(3)-mean)^2]          = 0.198548
+    => the contention coefficient kappa_c in E[G] ~ Wbar * kappa_c * lambda^2
+       lies in [0.0482, 0.1986] depending on where in the median
+       interval the dynamics rests.
+==========================================================================
+K2  threshold-crossing rate  E[1{flip}] for noise sd = sqrt(eps)
+    P(flip | distance d to threshold) = Phi(-|d|/sqrt(eps))
+    E_d[.] with density p near 0  =  sqrt(eps) * 2 * E[Z_+] * p(0) + O(eps)
+    2 E[Z_+] = 2/sqrt(2 pi) = 0.797885
+    => the leading eps-response is O(sqrt(eps)) = O(noise SD), NOT O(eps).
+==========================================================================
+K3  sigma_eff(sigma) = E[clip(N(sigma, 0.05^2), 0, 1)]
+    sigma=0.2: sigma_eff=0.200000   deficit +0.000%   E[Wbar]=n*sigma_eff=0.8000
+    sigma=0.4: sigma_eff=0.400000   deficit +0.000%   E[Wbar]=n*sigma_eff=1.6000
+    sigma=0.6: sigma_eff=0.600000   deficit +0.000%   E[Wbar]=n*sigma_eff=2.4000
+    sigma=0.8: sigma_eff=0.800000   deficit -0.000%   E[Wbar]=n*sigma_eff=3.2000
+    sigma=1.0: sigma_eff=0.980053   deficit -1.995%   E[Wbar]=n*sigma_eff=3.9202

@@ -1,0 +1,146 @@
+==============================================================================
+S1.  sigma-HOMOGENEITY (implemented DGP, alpha=0, eps=0)
+  [sne  ] s=0.2:  0.4575 (ratio 1.0000)  s=0.4:  0.8961 (ratio 0.9794)  s=0.6:  1.3362 (ratio 0.9735)  s=0.8:  1.7748 (ratio 0.9698)  s=1.0:  2.1754 (ratio 0.9510)
+  [naive] s=0.2:  0.5127 (ratio 1.0000)  s=0.4:  1.0043 (ratio 0.9793)  s=0.6:  1.4976 (ratio 0.9736)  s=0.8:  1.9990 (ratio 0.9747)  s=1.0:  2.4424 (ratio 0.9527)
+
+==============================================================================
+S2.  ALPHA / RHO PROFILES at sigma = 0.6, eps = 0
+  --- sne ---
+    implemented (knob alpha):
+      alpha=-0.8  rho=0.9412  E[G]=  3.0140 +- 0.0853
+      alpha=-0.4  rho=0.3077  E[G]=  1.0156 +- 0.0392
+      alpha=+0.0  rho=0.0000  E[G]=  1.3970 +- 0.0367
+      alpha=+0.4  rho=0.3077  E[G]=  1.0045 +- 0.0371
+      alpha=+0.8  rho=0.9412  E[G]=  3.0588 +- 0.0860
+    renormalised (knob alpha, unit marginal variance):
+      alpha=-0.8  rho=0.9412  E[G]=  2.5458 +- 0.0774
+      alpha=-0.4  rho=0.3077  E[G]=  0.9826 +- 0.0308
+      alpha=+0.0  rho=0.0000  E[G]=  1.3970 +- 0.0367
+      alpha=+0.4  rho=0.3077  E[G]=  1.0175 +- 0.0319
+      alpha=+0.8  rho=0.9412  E[G]=  2.4575 +- 0.0763
+    equicorr (knob = SIGNED pairwise correlation rho):
+      rho=-0.3333          E[G]=  2.0010 +- 0.0403
+      rho=-0.2500          E[G]=  1.7780 +- 0.0395
+      rho=-0.1000          E[G]=  1.4785 +- 0.0360
+      rho=+0.0000          E[G]=  1.3650 +- 0.0352
+      rho=+0.1000          E[G]=  1.2333 +- 0.0332
+      rho=+0.3077          E[G]=  1.0139 +- 0.0310
+      rho=+0.5000          E[G]=  0.8964 +- 0.0316
+      rho=+0.7000          E[G]=  0.9775 +- 0.0392
+      rho=+0.9412          E[G]=  2.5490 +- 0.0784
+      rho=+0.9900          E[G]=  4.7982 +- 0.1072
+  --- naive ---
+    implemented (knob alpha):
+      alpha=-0.8  rho=0.9412  E[G]=  6.9612 +- 0.1460
+      alpha=-0.4  rho=0.3077  E[G]=  2.3035 +- 0.0719
+      alpha=+0.0  rho=0.0000  E[G]=  1.4140 +- 0.0477
+      alpha=+0.4  rho=0.3077  E[G]=  2.3895 +- 0.0741
+      alpha=+0.8  rho=0.9412  E[G]=  7.0322 +- 0.1464
+    renormalised (knob alpha, unit marginal variance):
+      alpha=-0.8  rho=0.9412  E[G]=  7.9227 +- 0.1508
+      alpha=-0.4  rho=0.3077  E[G]=  2.9264 +- 0.0805
+      alpha=+0.0  rho=0.0000  E[G]=  1.4140 +- 0.0477
+      alpha=+0.4  rho=0.3077  E[G]=  3.0474 +- 0.0834
+      alpha=+0.8  rho=0.9412  E[G]=  8.0000 +- 0.1510
+    equicorr (knob = SIGNED pairwise correlation rho):
+      rho=-0.3333          E[G]=  0.3224 +- 0.0165
+      rho=-0.2500          E[G]=  0.5072 +- 0.0209
+      rho=-0.1000          E[G]=  1.0448 +- 0.0362
+      rho=+0.0000          E[G]=  1.4777 +- 0.0485
+      rho=+0.1000          E[G]=  1.9201 +- 0.0598
+      rho=+0.3077          E[G]=  2.9806 +- 0.0807
+      rho=+0.5000          E[G]=  4.0986 +- 0.0992
+      rho=+0.7000          E[G]=  5.6744 +- 0.1206
+      rho=+0.9412          E[G]=  7.9297 +- 0.1510
+      rho=+0.9900          E[G]=  8.1225 +- 0.1619
+
+==============================================================================
+S3.  EPS PROFILES at sigma = 0.6
+  [sne   alpha=+0.0] 0.0:1.397 0.01:0.781 0.05:0.474 0.1:0.437 0.25:0.527 0.5:0.640 0.75:0.692 1.0:0.715 1.5:0.730 2.0:0.734
+  [sne   alpha=+0.8] 0.0:3.059 0.01:0.903 0.05:0.347 0.1:0.469 0.25:1.047 0.5:1.464 0.75:1.645 1.0:1.721 1.5:1.766 2.0:1.776
+  [naive alpha=+0.0] 0.0:1.414 0.01:1.390 0.05:1.220 0.1:1.092 0.25:0.882 0.5:0.748 0.75:0.702 1.0:0.686 1.5:0.686 2.0:0.695
+  [naive alpha=+0.8] 0.0:7.032 0.01:7.426 0.05:6.870 0.1:6.138 0.25:4.727 0.5:3.438 0.75:2.734 1.0:2.335 1.5:1.972 2.0:1.856
+
+==============================================================================
+S4.  FIRST-ORDER EXPANSION AT (alpha, eps) = (0, 0), sigma = 0.6
+  --- sne ---
+    E[G](0,0) = 1.3366 +- 0.0125
+    h=0.02  [implemented ] right dG/dalpha= -1.5257  left= +1.8688  (3SE~2.639)  KINK
+    h=0.02  [renormalised] right dG/dalpha= +0.3065  left= +0.5503  (3SE~2.666)  smooth
+    h=0.02  [equicorr   ] dG/drho central =  -1.4558   (right -1.9947, left -0.9169)
+    h=0.05  [implemented ] right dG/dalpha= -1.5434  left= +1.7851  (3SE~1.052)  KINK
+    h=0.05  [renormalised] right dG/dalpha= +0.1366  left= +0.2896  (3SE~1.066)  smooth
+    h=0.05  [equicorr   ] dG/drho central =  -1.2848   (right -1.3813, left -1.1883)
+    eps=0.0025: E[G]= 0.9765  dG/deps= -144.034   dG/d(sqrt eps)= -7.2017
+    eps=0.0100: E[G]= 0.7575  dG/deps=  -57.908   dG/d(sqrt eps)= -5.7908
+    eps=0.0400: E[G]= 0.4870  dG/deps=  -21.240   dG/d(sqrt eps)= -4.2479
+    eps=0.0900: E[G]= 0.4192  dG/deps=  -10.193   dG/d(sqrt eps)= -3.0579
+  --- naive ---
+    E[G](0,0) = 1.4605 +- 0.0178
+    h=0.02  [implemented ] right dG/dalpha= -1.3135  left= +1.2599  (3SE~3.752)  smooth
+    h=0.02  [renormalised] right dG/dalpha= +0.1033  left= -0.1447  (3SE~3.774)  smooth
+    h=0.02  [equicorr   ] dG/drho central =  +4.2666   (right +5.4021, left +3.1311)
+    h=0.05  [implemented ] right dG/dalpha= -1.0552  left= +1.0974  (3SE~1.495)  KINK
+    h=0.05  [renormalised] right dG/dalpha= +0.2263  left= -0.2381  (3SE~1.511)  smooth
+    h=0.05  [equicorr   ] dG/drho central =  +4.2983   (right +4.8582, left +3.7384)
+    eps=0.0025: E[G]= 1.4508  dG/deps=   -3.869   dG/d(sqrt eps)= -0.1935
+    eps=0.0100: E[G]= 1.4082  dG/deps=   -5.231   dG/d(sqrt eps)= -0.5231
+    eps=0.0400: E[G]= 1.2739  dG/deps=   -4.665   dG/d(sqrt eps)= -0.9331
+    eps=0.0900: E[G]= 1.1255  dG/deps=   -3.722   dG/d(sqrt eps)= -1.1167
+
+==============================================================================
+S5.  FULL 5x5x5 GRID (implemented DGP) and the canonical-F head-to-head
+  [sne] best affine a+b*F : a=+0.8074 b=+0.2026   R^2=0.1738   Spearman=+0.4453
+     alpha  levels [-0.8, -0.4, 0.0, 0.4, 0.8]
+       E[G] ['1.741', '0.676', '0.788', '0.686', '1.775']
+       F    ['4.500', '1.500', '0.900', '0.643', '0.500']
+     sigma  levels [0.2, 0.4, 0.6, 0.8, 1.0]
+       E[G] ['0.384', '0.763', '1.141', '1.519', '1.860']
+       F    ['0.536', '1.072', '1.609', '2.145', '2.681']
+     eps    levels [0.0, 0.25, 0.5, 0.75, 1.0]
+       E[G] ['1.885', '0.706', '0.943', '1.045', '1.088']
+       F    ['1.072', '1.340', '1.609', '1.877', '2.145']
+  [naive] best affine a+b*F : a=+1.5688 b=+0.4133   R^2=0.1193   Spearman=+0.3242
+     alpha  levels [-0.8, -0.4, 0.0, 0.4, 0.8]
+       E[G] ['3.944', '1.143', '0.880', '1.178', '4.023']
+       F    ['4.500', '1.500', '0.900', '0.643', '0.500']
+     sigma  levels [0.2, 0.4, 0.6, 0.8, 1.0]
+       E[G] ['0.752', '1.503', '2.249', '2.995', '3.669']
+       F    ['0.536', '1.072', '1.609', '2.145', '2.681']
+     eps    levels [0.0, 0.25, 0.5, 0.75, 1.0]
+       E[G] ['3.994', '2.490', '1.838', '1.511', '1.335']
+       F    ['1.072', '1.340', '1.609', '1.877', '2.145']
+
+==============================================================================
+S6.  ISO-F FAN TEST
+  [sne] 8 iso-F levels with n>=3 ; mean within-F SD = 0.6246 vs pooled SD = 0.6541   ratio = 0.955
+      F= 0.333 n=3  range [ 0.3409,  3.0588]  spread factor   8.97x
+      F= 0.500 n=4  range [ 0.2045,  1.4639]  spread factor   7.16x
+      F= 0.667 n=4  range [ 0.2278,  1.9489]  spread factor   8.56x
+      F= 1.000 n=6  range [ 0.4019,  2.2782]  spread factor   5.67x
+      F= 1.250 n=4  range [ 0.3420,  1.0841]  spread factor   3.17x
+      F= 1.500 n=3  range [ 0.4766,  1.0346]  spread factor   2.17x
+      F= 1.750 n=3  range [ 0.5347,  1.1200]  spread factor   2.09x
+      F= 2.000 n=5  range [ 0.5589,  2.0092]  spread factor   3.60x
+  [naive] 8 iso-F levels with n>=3 ; mean within-F SD = 1.1994 vs pooled SD = 1.4620   ratio = 0.820
+      F= 0.333 n=3  range [ 0.7733,  7.0322]  spread factor   9.09x
+      F= 0.500 n=4  range [ 0.2882,  3.4381]  spread factor  11.93x
+      F= 0.667 n=4  range [ 0.2401,  4.5757]  spread factor  19.06x
+      F= 1.000 n=6  range [ 0.5706,  2.3185]  spread factor   4.06x
+      F= 1.250 n=4  range [ 1.1398,  1.5340]  spread factor   1.35x
+      F= 1.500 n=3  range [ 0.8517,  1.2091]  spread factor   1.42x
+      F= 1.750 n=3  range [ 0.7471,  1.1347]  spread factor   1.52x
+      F= 2.000 n=5  range [ 0.7071,  4.6517]  spread factor   6.58x
+
+==============================================================================
+S7.  PER-PRINCIPAL INCIDENCE  G_i  (sum_i G_i = G exactly)
+  [sne   a=+0.0 e=0.0] sum_i G_i == G : 4.52e-14 | P(G_i<0) = 0.2475 | E[min_i G_i] = -0.1895 | E[max_i G_i] = +0.4938 | E[HHI of borne loss] = 0.3824 | stakes-wtd = 0.1175
+  [sne   a=+0.0 e=1.0] sum_i G_i == G : 1.13e-13 | P(G_i<0) = 0.2273 | E[min_i G_i] = -0.1086 | E[max_i G_i] = +0.2506 | E[HHI of borne loss] = 0.4655 | stakes-wtd = 0.0604
+  [sne   a=+0.8 e=0.0] sum_i G_i == G : 1.07e-14 | P(G_i<0) = 0.0561 | E[min_i G_i] = +0.1937 | E[max_i G_i] = +0.3187 | E[HHI of borne loss] = 0.1987 | stakes-wtd = 0.2567
+  [sne   a=+0.8 e=1.0] sum_i G_i == G : 5.44e-15 | P(G_i<0) = 0.0377 | E[min_i G_i] = +0.1071 | E[max_i G_i] = +0.1811 | E[HHI of borne loss] = 0.2943 | stakes-wtd = 0.1440
+  [naive a=+0.0 e=0.0] sum_i G_i == G : 6.22e-14 | P(G_i<0) = 0.1262 | E[min_i G_i] = -0.0119 | E[max_i G_i] = +0.2909 | E[HHI of borne loss] = 0.2207 | stakes-wtd = 0.1193
+  [naive a=+0.0 e=1.0] sum_i G_i == G : 1.16e-13 | P(G_i<0) = 0.2459 | E[min_i G_i] = -0.1188 | E[max_i G_i] = +0.2497 | E[HHI of borne loss] = 0.4167 | stakes-wtd = 0.0580
+  [naive a=+0.8 e=0.0] sum_i G_i == G : 7.11e-15 | P(G_i<0) = 0.0211 | E[min_i G_i] = +0.5080 | E[max_i G_i] = +0.6643 | E[HHI of borne loss] = 0.1149 | stakes-wtd = 0.5885
+  [naive a=+0.8 e=1.0] sum_i G_i == G : 4.44e-15 | P(G_i<0) = 0.0377 | E[min_i G_i] = +0.1497 | E[max_i G_i] = +0.2399 | E[HHI of borne loss] = 0.1566 | stakes-wtd = 0.1952
+
+wrote a06_results.json

@@ -1,0 +1,1 @@
+a04 retired mid-run: its exact-Nash correspondence grid (R=20-60k over 81 profiles x 21 states) is superseded by a09 (the selection bracket) and a14b (the head-to-head).

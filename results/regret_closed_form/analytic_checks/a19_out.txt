@@ -1,0 +1,22 @@
+========================================================================================
+[PASS] S1 welfare identity  sum w_i (x-t_i)^2 = Wbar (x-mu)^2 + V  
+[PASS] S2 Var(tau_i - taubar) = (n-1)/n * v_tau (1-rho)  = 3*v_tau*(1 - rho)/4
+[PASS] S3 Var(mu) = v_tau - (n-1)/n lambda^2  
+[PASS] S4a rho(alpha) = alpha^2 + 2|alpha|^3 + O(a^4)  (quadratic: no 1st-order term)  series = 2*a**3 + a**2
+[PASS] S4b lambda^2_renorm = 1 - alpha^2 - 2|alpha|^3 + O(a^4): d/da at 0+ is ZERO  series = -2*a**3 - a**2 + 1
+[PASS] S5 lambda^2_impl = (1-|alpha|)^2 : one-sided d/d|alpha| at 0+ is -2 (a kink)  
+[PASS] S5b v_tau_impl one-sided d/d|alpha| at 0+ is -2  
+[PASS] S6 mu - taubar = (c/n) sum_i z_i (tau_i - taubar) + O(c^2)  residual = 0
+[PASS] S6b Var(mu) gains (n-1)/n^2 * c^2 lambda^2 = (3/16) c^2 lambda^2  coef = 3/16
+[PASS] S7a E[d^2 | mu=m] = m^2 - (4/3) m^3   for 0<m<1/2, f~U(0,1)  = -4*m**3/3 + m**2
+[PASS] S7b E[mu^3 1{mu>0}] = v^{3/2} * 2/sqrt(2 pi)  = sqrt(2)*v**(3/2)/sqrt(pi)
+[PASS] S7c coefficient (4/3)*2/sqrt(2 pi) = 1.063846  = 1.063846
+[PASS] S8 sigma_eff(0.2) closed form == numeric  0.200000357 vs 0.200000357
+[PASS] S8 sigma_eff(0.6) closed form == numeric  0.600000000 vs 0.600000000
+[PASS] S8 sigma_eff(1.0) closed form == numeric  0.980052886 vs 0.980052886
+[PASS] S8 sigma_eff(1.2) closed form == numeric  0.999999643 vs 0.999999643
+[PASS] S9 E_pi(x-mu)^2 - q^2 = Var_pi + b^2 + 2 q b  
+[PASS] S10a E[d^2 | arc length g] = g^2/12  = g**2/12
+[PASS] S10b E_f[(f^3+(1-f)^3)/12] = 1/24  = 1/24
+========================================================================================
+19/19 symbolic checks PASS
