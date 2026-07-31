@@ -65,6 +65,18 @@ def main():
         ctrl_name = "rho"
         if args.rhos is None:
             args.rhos = [-0.33, -0.2, -0.1, 0.0, 0.2, 0.4, 0.6, 0.8]
+        # Mirror of the team-branch guard: below the PSD bound -1/(n-1) the sampler
+        # silently clips realised correlation to the bound while the CSV keeps the
+        # nominal label -- the same nominal-vs-realised trap, other branch.
+        lo = -1.0 / (vr.N_AGENTS - 1)
+        bad = [v for v in args.rhos if v < lo - 1e-9 or v > 1.0]
+        if bad:
+            ap.error(
+                f"--dgp equicorr takes rho in [{lo:.4f}, 1] (PSD bound -1/(n-1) at "
+                f"n={vr.N_AGENTS}), got {bad}. Values below the bound are silently "
+                "clipped to it while keeping their nominal label, producing flat "
+                "duplicated cells that bias any slope regressed on the label."
+            )
     else:
         sampler = sample_agent_params_team
         ctrl_name = "opp"

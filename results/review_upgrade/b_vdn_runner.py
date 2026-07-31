@@ -296,6 +296,9 @@ def _run_condition_offpolicy(alpha, sigma, cond_eps, mode, n_reps, n_episodes, d
             **{f"agent_{i}_reward": float(last_rew[i]) for i in range(A)},
             "mean_reward": float(last_rew.mean()),
             "convergence_time": float(np.mean(conv)),
+            # eval_reward is the unambiguous name; eval_gap (its negation) is kept for
+            # backward compatibility with committed CSVs. See results/DATA_DICTIONARY.md.
+            "eval_reward": float(eval_rew[r].mean()),
             "eval_gap": float(-eval_rew[r].mean()),
         })
     return rows
@@ -500,6 +503,9 @@ def _mappo_train(actor, critic, optimizer, train_reset_fn, eval_reset_fn, observ
             **{f"agent_{i}_reward": float(last_rew[i]) for i in range(A)},
             "mean_reward": float(last_rew.mean()),
             "convergence_time": float(np.mean(conv)),
+            # eval_reward is the unambiguous name; eval_gap (its negation) is kept for
+            # backward compatibility with committed CSVs. See results/DATA_DICTIONARY.md.
+            "eval_reward": float(eval_rew[r].mean()),
             "eval_gap": float(-eval_rew[r].mean()),
         })
     return per_rep
