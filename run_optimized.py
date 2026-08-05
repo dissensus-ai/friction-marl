@@ -103,7 +103,12 @@ def run_single_replication(
             action_indices = [
                 agent.select_action(o) for agent, o in zip(agents, noisy_obs)
             ]
-            actions = [action_map[idx] for idx in action_indices]
+            # build_action_map emits {-1,0,+1}; the env's action space is
+            # MultiDiscrete([3]*m) and its decoder subtracts one, so the
+            # encoding must be shifted to {0,1,2} here. Passing the raw
+            # vector yielded deltas in {-2,-1,0} -- a state that could only
+            # ever fall. See sec:crossval in the paper.
+            actions = [action_map[idx] + 1 for idx in action_indices]
 
             next_obs, _, done, truncated, info = env.step(tuple(actions))
             state = info["state"]
