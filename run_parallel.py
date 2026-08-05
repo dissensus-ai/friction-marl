@@ -118,8 +118,12 @@ def _run_one_replication(spec: JobSpec) -> Tuple[dict, np.ndarray, str, np.ndarr
         ep_rewards = np.zeros(n_agents, dtype=np.float32)
 
         while not (done or truncated):
+            # Definition 3.3 specifies nu ~ N(0, eps*I), i.e. standard deviation
+            # sqrt(eps). Passing eps itself as the scale gives covariance eps^2 I
+            # and mislabels the entire epsilon grid. Matches run_gpu.py.
             if cond_epsilon > 0:
-                noise_all = rng.normal(0.0, cond_epsilon, size=(n_agents, n_resources))
+                noise_all = rng.normal(0.0, cond_epsilon ** 0.5,
+                                       size=(n_agents, n_resources))
                 noisy_obs = [obs[i] + noise_all[i] for i in range(n_agents)]
             else:
                 noisy_obs = obs
@@ -138,10 +142,21 @@ def _run_one_replication(spec: JobSpec) -> Tuple[dict, np.ndarray, str, np.ndarr
             state = info["state"]
             rewards = compute_rewards(state, weights, targets)
 
+            # The stored NEXT observation must carry its own independent noise at
+            # the same scale. Storing the clean next state beside a noisy current
+            # one let TD targets bootstrap on state the acting policy never saw --
+            # a privilege absent from the stated decision process.
+            if cond_epsilon > 0:
+                next_noise = rng.normal(0.0, cond_epsilon ** 0.5,
+                                        size=(n_agents, n_resources))
+                noisy_next = [next_obs[i] + next_noise[i] for i in range(n_agents)]
+            else:
+                noisy_next = next_obs
+
             terminal = done or truncated
             for i, agent in enumerate(agents):
                 agent.replay.push(
-                    noisy_obs[i], action_indices[i], rewards[i], next_obs[i], terminal
+                    noisy_obs[i], action_indices[i], rewards[i], noisy_next[i], terminal
                 )
                 agent.update()
                 agent.soft_update_target()
