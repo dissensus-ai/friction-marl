@@ -1,7 +1,8 @@
 """GPU/CPU cross-validation, recomputed after the CPU arm's defects were fixed.
 
-Written 6 Aug 2026. Source of record for every number in the manuscript's
-cross-validation subsection.
+Written 6 Aug 2026; extended the same day after an adversarial check found two
+errors in the manuscript paragraph built on the first version of this script.
+Source of record for every number in the cross-validation subsection.
 
 BACKGROUND. The CPU arm carried three defects the GPU arm did not:
   1. action encoding -- build_action_map emits {-1,0,+1} but the env decoder
@@ -10,17 +11,30 @@ BACKGROUND. The CPU arm carried three defects the GPU arm did not:
   2. observation noise scaled by eps rather than sqrt(eps) (covariance eps^2 I
      where Definition 3.3 specifies eps I).
   3. replay stored a CLEAN next observation beside a noisy current one.
-Only (1) is unique to the CPU path; (2) and (3) were fixed on the GPU side in
-July and never propagated. All three are fixed as of 2c0bfd5 and the arm was
-re-run in full (3,750 runs, 32.8 h).
+Only (1) is unique to the CPU path; (2) and (3) were GPU defects first, fixed
+there in July and never propagated to the CPU runner. All three are fixed as of
+2c0bfd5 and the arm was re-run in full (3,750 runs, 32.8 h).
 
-WHAT THIS TESTS. The manuscript attributed a systematic one-directional offset
-of 0.478 between the implementations to defect (1): an environment whose state
-can only decrease sits further from every agent's target. That is a falsifiable
-prediction -- fix the decoder and the offset should vanish. It does.
+WHAT DEFECT (1) ACTUALLY DID -- and the sign error worth recording. The first
+draft of the manuscript paragraph reasoned that "a state that can only fall sits
+further from every agent's target". That is backwards. sample_agent_params draws
+targets about ZERO and the state is clipped to [0, capacity], so a monotonically
+descending state moves TOWARD every target: the broken environment was a free
+ride, which is why the defective arm scored HIGHER. `pinned_state_check` below
+is the identification that survives -- with the state pinned at 0 the reward has
+a closed form, -sum_j w_ij t_ij^2, and the defective arm's 125 condition means
+sit on it.
+
+WHAT THE RE-RUN DOES AND DOES NOT IDENTIFY. Three defects were repaired in one
+re-run, so the collapse of the grid-mean offset is jointly attributable. Defects
+(2) and (3) sit behind an `if cond_epsilon > 0` guard in run_parallel.py and are
+inert at eps = 0, so the eps = 0 stratum is a clean single-defect counterfactual
+for the decoder -- and there the repair does not zero the offset, it overshoots.
+`epsilon_strata` reports this rather than hiding it in a grid mean.
 
 Run:  python3 results/full_factorial_postfix/crossval.py
 """
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -28,56 +42,127 @@ import pandas as pd
 from scipy import stats
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO))
+from friction_marl.experiments.factorial_design import sample_agent_params  # noqa: E402
+
 K = ["alpha", "sigma", "epsilon"]
+N_AGENTS, N_RESOURCES = 4, 3
+PINNED_DRAWS = 4000
 
 
 def condition_means(df, col="mean_reward", name="v"):
     return df.groupby(K, as_index=False)[col].mean().rename(columns={col: name})
 
 
-def icc_3_1(a, b):
-    """Two-way mixed, single measure, absolute agreement is NOT what we want
-    here -- consistency (3,1) is, since a pure level shift is the thing under
-    test and we report it separately as the offset."""
+def iccs(a, b):
+    """Shrout & Fleiss two-way, single measure: consistency (3,1) and absolute
+    agreement (A,1). The distinction is load-bearing here -- (3,1) is invariant
+    to a pure column shift, so it CANNOT support a claim about levels. It reads
+    0.907 on an arm carrying a +0.499 offset. (A,1) reads 0.769 on the same arm."""
     x = np.vstack([a, b]).T
     n, k = x.shape
     gm = x.mean()
     ms_r = k * ((x.mean(1) - gm) ** 2).sum() / (n - 1)
+    ms_c = n * ((x.mean(0) - gm) ** 2).sum() / (k - 1)
     ms_e = ((x - x.mean(1, keepdims=True) - x.mean(0) + gm) ** 2).sum() / ((n - 1) * (k - 1))
-    return float((ms_r - ms_e) / (ms_r + (k - 1) * ms_e))
+    consistency = (ms_r - ms_e) / (ms_r + (k - 1) * ms_e)
+    absolute = (ms_r - ms_e) / (ms_r + (k - 1) * ms_e + k * (ms_c - ms_e) / n)
+    return float(consistency), float(absolute)
 
 
-def main():
+def pinned_state_reward(alpha, sigma, seed):
+    """Closed-form mean reward when the state is pinned at 0: -sum_j w_j t_j^2,
+    averaged over agents, under the actual parameter sampler."""
+    rng = np.random.default_rng(seed)
+    return float(np.mean([
+        (-(w * t ** 2).sum(axis=1)).mean()
+        for w, t in (sample_agent_params(rng, N_AGENTS, N_RESOURCES, alpha, sigma)
+                     for _ in range(PINNED_DRAWS))
+    ]))
+
+
+def load():
     new = condition_means(
         pd.read_csv(REPO / "results/full_factorial_postfix/replication_results.csv"),
         name="cpu_new")
-    gpu = condition_means(
+    gpu_new = condition_means(
         pd.read_csv(REPO / "results/gpu_factorial_postfix/replication_results.csv"),
-        name="gpu")
+        name="gpu_new")
     old = pd.read_csv(REPO / "results/full_factorial/analysis/metrics.csv")
-    old["cpu_old"] = -old["reward_gap"]          # gap = -mean reward
-
-    m = new.merge(gpu, on=K).merge(old[K + ["cpu_old"]], on=K)
+    old["cpu_old"] = -old["reward_gap"]                     # gap = -mean reward
+    gold = pd.read_csv(REPO / "results/gpu_factorial/analysis/metrics.csv")
+    gold["gpu_old"] = -gold["reward_gap"]
+    m = (new.merge(gpu_new, on=K)
+            .merge(old[K + ["cpu_old"]], on=K)
+            .merge(gold[K + ["gpu_old"]], on=K))
     assert len(m) == 125, f"expected 125 matched conditions, got {len(m)}"
+    return m
 
+
+def agreement_table(m):
+    """Both rows scored against the SAME (post-fix) GPU arm of record, so only the
+    CPU arm varies. The 'before' row therefore differs from the +0.478 / 0.948 /
+    0.945 / 0.913 printed in earlier versions, which paired the defective CPU arm
+    against the PRE-fix GPU arm. That older pairing is printed here too."""
+    print(f"{'comparison':44}{'offset':>9}{'rho':>8}{'r':>8}{'ICC(3,1)':>10}{'ICC(A,1)':>10}")
+    for label, a, b in [
+            ("cpu_old vs gpu_old  (earlier versions)", "cpu_old", "gpu_old"),
+            ("cpu_old vs gpu_new  (before, re-scored)", "cpu_old", "gpu_new"),
+            ("cpu_new vs gpu_new  (after all three)", "cpu_new", "gpu_new")]:
+        c31, ca1 = iccs(m[a].values, m[b].values)
+        print(f"{label:44}{(m[a] - m[b]).mean():+9.3f}"
+              f"{stats.spearmanr(m[a], m[b]).statistic:8.3f}"
+              f"{stats.pearsonr(m[a], m[b]).statistic:8.3f}{c31:10.3f}{ca1:10.3f}")
+    print(f"{'gpu_new vs gpu_old  (GPU arm movement)':44}"
+          f"{(m.gpu_new - m.gpu_old).mean():+9.3f}")
+
+
+def pinned_state_check(m):
+    """Identification for defect (1) that does not depend on the other two."""
+    m = m.assign(pinned=[pinned_state_reward(a, s, seed=i)
+                         for i, (a, s) in enumerate(zip(m.alpha, m.sigma))])
+    print(f"\n{'arm':10}{'MAE vs pinned':>15}{'mean diff':>12}{'Pearson r':>12}")
+    for c in ["cpu_old", "cpu_new", "gpu_new"]:
+        print(f"{c:10}{(m[c] - m.pinned).abs().mean():15.3f}{(m[c] - m.pinned).mean():+12.3f}"
+              f"{stats.pearsonr(m[c], m.pinned).statistic:12.3f}")
+    print(f"defective arm scored higher than GPU in {(m.cpu_old > m.gpu_new).sum()}/125 cells; "
+          f"repair moved CPU reward {(m.cpu_new - m.cpu_old).mean():+.3f}")
+    return m
+
+
+def epsilon_strata(m):
+    """eps = 0 isolates the decoder: defects (2) and (3) are behind an
+    `if cond_epsilon > 0` guard, and the else-branches are byte-identical either
+    side of commit 2c0bfd5, so the +1 action shift is the only live change there."""
+    pre, post = m.cpu_old - m.gpu_new, m.cpu_new - m.gpu_new
+    print(f"\n{'eps':>6}{'pre-fix':>10}{'p':>10}{'post-fix':>10}{'p':>10}")
+    for e, g in m.groupby("epsilon"):
+        a, b = g.cpu_old - g.gpu_new, g.cpu_new - g.gpu_new
+        print(f"{e:>6.2f}{a.mean():+10.3f}{stats.ttest_1samp(a, 0).pvalue:10.1e}"
+              f"{b.mean():+10.3f}{stats.ttest_1samp(b, 0).pvalue:10.1e}")
+    z, nz = m.epsilon == 0, m.epsilon > 0
+    print(f"pre-fix  eps=0 {pre[z].mean():+.3f} vs eps>0 {pre[nz].mean():+.3f}  "
+          f"Welch p={stats.ttest_ind(pre[z], pre[nz], equal_var=False).pvalue:.1e}")
+    print(f"post-fix eps=0 {post[z].mean():+.3f} vs eps>0 {post[nz].mean():+.3f} "
+          f"(eps>0 pooled p={stats.ttest_1samp(post[nz], 0).pvalue:.2f})")
+    for lab, d in [("pre", pre), ("post", post)]:
+        f = stats.f_oneway(*[v.values for _, v in d.groupby(m.epsilon)])
+        print(f"one-way ANOVA over eps, {lab:4}-fix residual: F={f.statistic:.2f} p={f.pvalue:.4f}")
+
+
+def main():
+    m = load()
     print(f"matched conditions: {len(m)}\n")
-    print(f"{'arm':30}{'offset':>9}{'Spearman':>10}{'Pearson':>9}{'ICC(3,1)':>10}")
-    for label, col in [("OLD CPU (broken decoder)", "cpu_old"),
-                       ("NEW CPU (all three fixed)", "cpu_new")]:
-        print(f"{label:30}{(m[col] - m.gpu).mean():+9.3f}"
-              f"{stats.spearmanr(m[col], m.gpu).statistic:10.3f}"
-              f"{stats.pearsonr(m[col], m.gpu).statistic:9.3f}"
-              f"{icc_3_1(m[col].values, m.gpu.values):10.3f}")
+    agreement_table(m)
+    m = pinned_state_check(m)
+    epsilon_strata(m)
 
-    d = m.cpu_new - m.gpu
+    d = m.cpu_new - m.gpu_new
     lo, hi = d.mean() - 1.96 * d.std(), d.mean() + 1.96 * d.std()
-    inside = 100 * ((d > lo) & (d < hi)).mean()
-    print(f"\nnew arm Bland-Altman: bias {d.mean():+.3f}, "
-          f"limits of agreement [{lo:.3f}, {hi:.3f}], {inside:.1f}% inside")
-
-    by_eps = m.groupby("epsilon").apply(lambda g: (g.cpu_new - g.gpu).mean(),
-                                        include_groups=False)
-    print("offset by epsilon: " + ", ".join(f"{k}={v:+.3f}" for k, v in by_eps.items()))
+    print(f"\nnew arm Bland-Altman: bias {d.mean():+.3f}, limits [{lo:.3f}, {hi:.3f}], "
+          f"{100 * ((d > lo) & (d < hi)).mean():.1f}% inside (nominal 95%)")
+    print(f"residual offset vs zero: t p={stats.ttest_1samp(d, 0).pvalue:.2f}, "
+          f"Wilcoxon p={stats.wilcoxon(d).pvalue:.2f}")
 
     out = REPO / "results/full_factorial_postfix/crossval_conditions.csv"
     m.to_csv(out, index=False)
