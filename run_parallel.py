@@ -65,6 +65,7 @@ class JobSpec:
     n_episodes: int
     seed: int  # Per-replication seed (pre-computed)
     action_map: np.ndarray
+    zero_bias: bool = False   # match run_gpu.py's zero-init biases
 
 
 def _run_one_replication(spec: JobSpec) -> Tuple[dict, np.ndarray, str, np.ndarray]:
@@ -96,7 +97,8 @@ def _run_one_replication(spec: JobSpec) -> Tuple[dict, np.ndarray, str, np.ndarr
 
     agents = []
     for _ in range(n_agents):
-        cfg = IQLConfig(obs_dim=n_resources, action_dim=action_map.shape[0])
+        cfg = IQLConfig(obs_dim=n_resources, action_dim=action_map.shape[0],
+                        zero_bias=spec.zero_bias)
         agents.append(IQLAgent(cfg, seed=int(rng.integers(0, 2**31 - 1))))
 
     probe_states = rng.uniform(0.0, env.capacity, size=(128, n_resources)).astype(np.float32)
@@ -217,6 +219,8 @@ def run_parallel_factorial(
     seed: int,
     output_dir: Path,
     n_workers: int | None = None,
+    epsilons: list[float] | None = None,
+    zero_bias: bool = False,
 ):
     if n_workers is None:
         # Each worker uses 1 torch thread, so we can use most CPU threads
@@ -228,6 +232,8 @@ def run_parallel_factorial(
     learning_curves_path = output_dir / "learning_curves.npz"
 
     conditions = generate_conditions()
+    if epsilons is not None:
+        conditions = [c for c in conditions if c.epsilon in epsilons]
     action_map = build_action_map(n_resources)
 
     # Load completed replications
@@ -269,6 +275,7 @@ def run_parallel_factorial(
                     n_episodes=n_episodes,
                     seed=rep_seed,
                     action_map=action_map,
+                    zero_bias=zero_bias,
                 )
             )
 
@@ -276,7 +283,9 @@ def run_parallel_factorial(
     completed_count = total_jobs - len(job_specs)
 
     print(f"=== Parallel Friction MARL Factorial ===")
-    print(f"Conditions: {len(conditions)} (5x5x5)")
+    n_a, n_s, n_e = (len({getattr(c, f) for c in conditions})
+                     for f in ("alpha", "sigma", "epsilon"))
+    print(f"Conditions: {len(conditions)} ({n_a}x{n_s}x{n_e})")
     print(f"Replications per condition: {n_replications}")
     print(f"Episodes per replication: {n_episodes}")
     print(f"Total condition-replications: {total_jobs}")
@@ -382,6 +391,10 @@ def parse_args():
     parser.add_argument("--n-episodes", type=int, default=10000)
     parser.add_argument("--output-dir", type=str, default="./results/full_factorial")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--epsilons", type=float, nargs="+", default=None,
+                       help="Restrict the grid to these epsilon levels")
+    parser.add_argument("--zero-bias", action="store_true",
+                       help="Zero-initialize network biases to match run_gpu.py")
     parser.add_argument("--workers", type=int, default=None,
                        help="Number of parallel workers (default: CPU count - 2)")
     return parser.parse_args()
@@ -398,4 +411,6 @@ if __name__ == "__main__":
         seed=args.seed,
         output_dir=Path(args.output_dir),
         n_workers=args.workers,
+        epsilons=args.epsilons,
+        zero_bias=args.zero_bias,
     )

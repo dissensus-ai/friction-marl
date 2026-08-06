@@ -24,10 +24,17 @@ class IQLConfig:
     epsilon_decay: int = 5000
     buffer_size: int = 100000
     batch_size: int = 64
+    zero_bias: bool = False   # match run_gpu.py's zero-initialized biases
 
 
 class QNetwork(nn.Module):
-    def __init__(self, obs_dim: int, action_dim: int, hidden_dim: int):
+    def __init__(self, obs_dim: int, action_dim: int, hidden_dim: int,
+                 zero_bias: bool = False):
+        """`zero_bias` matches run_gpu.py's BatchedQNet, which initializes b1/b2/b3
+        to zeros while nn.Linear defaults to U(-1/sqrt(fan_in), +1/sqrt(fan_in)).
+        The two arms' weight inits already agree; the biases did not, and that is
+        the leading suspect for the residual eps=0 offset reported in sec:crossval.
+        Off by default so the arm of record is unaffected."""
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(obs_dim, hidden_dim),
@@ -36,6 +43,10 @@ class QNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_dim, action_dim),
         )
+        if zero_bias:
+            for layer in self.net:
+                if isinstance(layer, nn.Linear):
+                    nn.init.zeros_(layer.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
@@ -74,8 +85,10 @@ class IQLAgent:
             np.random.seed(seed)
             torch.manual_seed(seed)
 
-        self.q = QNetwork(config.obs_dim, config.action_dim, config.hidden_dim)
-        self.target_q = QNetwork(config.obs_dim, config.action_dim, config.hidden_dim)
+        self.q = QNetwork(config.obs_dim, config.action_dim, config.hidden_dim,
+                          zero_bias=config.zero_bias)
+        self.target_q = QNetwork(config.obs_dim, config.action_dim, config.hidden_dim,
+                                 zero_bias=config.zero_bias)
         self.target_q.load_state_dict(self.q.state_dict())
         self.optimizer = optim.Adam(self.q.parameters(), lr=config.lr)
 
