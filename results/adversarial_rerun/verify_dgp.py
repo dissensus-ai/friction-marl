@@ -22,6 +22,7 @@ sys.path.insert(0, str(REPO))
 
 from results.adversarial_rerun.dgp import (  # noqa: E402
     sample_agent_params_equicorr,
+    sample_agent_params_equicorr_feasible,
     sample_agent_params_team,
     realised_mean_pairwise_corr,
 )
@@ -62,6 +63,31 @@ def main():
         p(f"{rho:>10.2f} {pooled:>12.4f} {perdraw:>14.4f}  {verdict}")
         rows.append({"dgp": "equicorr", "control": rho, "target_rho": rho,
                      "pooled_corr": pooled, "per_draw_corr": perdraw})
+
+    # (A2) translation-equivalent, wholly feasible support control ------------
+    p("\n(A2) FEASIBLE-CENTRED EQUICORRELATED continuum -- every target in [0,10]")
+    p(f"{'rho_target':>10} {'pooled_corr':>12} {'target_min':>12} {'target_max':>12}")
+    feasible_in_box = True
+    for rho in rhos:
+        pooled, perdraw = realised_mean_pairwise_corr(
+            sample_agent_params_equicorr_feasible, rho, SIGMA,
+            N_AGENTS, N_RESOURCES, N_DRAWS, SEED)
+        check_rng = np.random.default_rng(SEED + 991)
+        support_draws = np.stack([
+            sample_agent_params_equicorr_feasible(
+                check_rng, N_AGENTS, N_RESOURCES, rho, SIGMA
+            )[1]
+            for _ in range(N_DRAWS)
+        ])
+        target_min = float(support_draws.min())
+        target_max = float(support_draws.max())
+        feasible_in_box &= target_min >= 0.0 and target_max <= 10.0
+        p(f"{rho:>10.2f} {pooled:>12.4f} {target_min:>12.4f} {target_max:>12.4f}")
+        rows.append({
+            "dgp": "equicorr_feasible", "control": rho, "target_rho": rho,
+            "pooled_corr": pooled, "per_draw_corr": perdraw,
+            "target_min": target_min, "target_max": target_max,
+        })
 
     # (B) two-team block ----------------------------------------------------
     p("\n(B) TWO-TEAM block  -- opp is the knob; between-team corr = -opp^2,")
@@ -111,19 +137,28 @@ def main():
     p(f"  negative arm realised (<-0.05) : {neg_ok}")
     p(f"  zero at rho=0    (|corr|<0.02) : {zero_ok}")
     p(f"  strong positive (>0.5 @ rho>=0.6): {pos_ok}")
-    passed = neg_ok and pos_ok and zero_ok
+    feasible_rows = [r for r in rows if r["dgp"] == "equicorr_feasible"]
+    feasible_corr_ok = (
+        max(abs(r["pooled_corr"] - r["target_rho"]) for r in feasible_rows) < 0.02
+    )
+    p(f"  feasible support inside [0,10] : {feasible_in_box}")
+    p(f"  feasible corr within 0.02 target: {feasible_corr_ok}")
+    passed = neg_ok and pos_ok and zero_ok and feasible_in_box and feasible_corr_ok
     p(f"  >>> GATE {'PASSED' if passed else 'FAILED'} <<<")
     p("=" * 78)
 
     # ---- plot ----
     fig, ax = plt.subplots(figsize=(7, 5))
     eqdf = pd.DataFrame([r for r in rows if r["dgp"] == "equicorr"])
+    feasible_df = pd.DataFrame([r for r in rows if r["dgp"] == "equicorr_feasible"])
     teamdf = pd.DataFrame([r for r in rows if r["dgp"] == "team"])
     origdf = pd.DataFrame([r for r in rows if r["dgp"] == "original"])
     ax.plot(eqdf["control"], eqdf["pooled_corr"], "o-", color="#7a1f2b",
             lw=2, label="(A) equicorr: realised corr vs rho_target")
     ax.plot(eqdf["control"], eqdf["control"], ":", color="#7a1f2b", alpha=0.5,
             label="ideal (corr = rho_target)")
+    ax.plot(feasible_df["control"], feasible_df["pooled_corr"], "x--",
+            color="#1f5f7a", lw=1.5, label="feasible-centred control")
     ax.plot(origdf["control"], origdf["pooled_corr"], "s--", color="grey",
             lw=2, label="ORIGINAL buggy (corr vs alpha) -- stays +")
     ax.axhline(0, color="k", lw=0.7)

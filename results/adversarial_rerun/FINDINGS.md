@@ -114,8 +114,9 @@ env loop** into single tensor ops, so the GPU still wins. Benchmark (`bench.py`,
 ROCm 6.3 / torch 2.9.1; 3 HIP devices visible (0,1 = GPUs; 2 = CPU-as-HIP). **Fastest
 path: the two GPUs in parallel.** Because cond-seeds and the probe are drawn in a fixed
 order depending only on (rho x sigma, seed) -- not on mode -- IQL on GPU0 and VDN on GPU1
-use **identical** preference draws and inits, so the halves are perfectly matched and
-mergeable. Full equicorr run (32 conds x 30 reps x 1000 ep) wall-clock ~ **22 min**
+use matched preference draws, so the halves share the intended condition schedule and are
+mergeable. The archived runs predate deterministic PyTorch seeding, so network initializations
+are not claimed to be identical. Full equicorr run (32 conds x 30 reps x 1000 ep) wall-clock ~ **22 min**
 across both GPUs (~70 s/cond IQL, ~80 s/cond VDN).
 
 ---
@@ -130,8 +131,13 @@ across both GPUs (~70 s/cond IQL, ~80 s/cond VDN).
 | modes | 2 | IQL, VDN (matched seeds) |
 | reps x episodes | -- | 30 x 1000 (mirrors the prior review_upgrade run) |
 
-epsilon (obs noise) = 0 throughout (matches the prior targeted VDN run; epsilon was
-~irrelevant).
+epsilon (obs noise) = 0 throughout. The post-fix clean-evaluation analysis detects a
+small first-stage epsilon penalty and bounds its pooled full-range contrast to 21.5%
+of the stakes anchor. The later feasible-centred signed crossing in
+`results/reviewer3_followup/` finds a larger positive mean penalty and a positive
+`rho x epsilon` interaction, opposite the canonical ratio; that follow-up supersedes any attempt
+to transport the first-stage bound across support or preference mixtures. Entropy remains fixed
+at zero in the present archived signed run itself.
 
 ---
 
@@ -188,7 +194,7 @@ Replication-level eta^2 (gap ~ C(rho)*C(sigma)):
 | C(sigma) | 0.235 | 0.000 | 0.225 | 0.000 |
 | C(rho):C(sigma) | 0.015 | 0.014 | 0.017 | 0.014 |
 
-- **sigma dominates the RAW gap (eta^2~0.22-0.24) but vanishes after sigma-normalization**
+- **sigma dominates the RAW gap (eta^2~0.22-0.24) but essentially collapses after sigma-normalization (eta^2=0.0002-0.0004)**
   -- the "stakes dominate" effect is mechanical (degree-1 weight scaling), exactly as the
   prior review_upgrade analysis found. The structural (learned) effect of preference
   correlation, rho, is real but modest (eta^2 ~ 0.04-0.06 normalized).

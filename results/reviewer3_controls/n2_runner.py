@@ -1,14 +1,16 @@
-"""EXPERIMENT 2 -- n=2 CLEAN STRONG-OPPOSITION (reviewer3 Critical #2 + Major #4).
+"""EXPERIMENT 2 -- n=2 LATENT-TARGET STRONG OPPOSITION (reviewer3 Critical #2 + Major #4).
 
 Reviewer concern: (a) the two-team n=4 design confounds strong BETWEEN-team
 opposition with strong WITHIN-team cooperation; (b) the equicorrelated n=4 sweep is
-PSD-capped at rho = -1/(n-1) = -1/3, so it can never reach genuine strong opposition.
+PSD-capped at rho = -1/(n-1) = -1/3, so it cannot reach latent target rho=-1.
 
-CLEAN FIX: with n=2 agents there is exactly ONE pair, so the equicorrelated rho
-reaches FULL -1 with NO within-team-cooperation confound. We run the SAME shared-pool
+With n=2 agents there is exactly one pair, so the equicorrelated latent target reaches
+rho=-1 without a within-team-cooperation confound. Box constraints attenuate the
+correlation between feasible optima to -0.468, however, and the reduction to two
+agents introduces an agent-count confound. We run the same shared-pool
 main env (`b_vdn_runner.run_condition`, UNCHANGED) but with N_AGENTS=2, sweeping the
-signed correlation rho in {-1.0, -0.6, -0.2, 0.0, +0.4, +0.8}. This is the genuinely
-strong-adversarial test the n=4 design could not give.
+signed latent correlation rho in {-1.0, -0.6, -0.2, 0.0, +0.4, +0.8}. This extends
+the target axis but is not an unconfounded n=4 adversarial test.
 
 We monkeypatch ONLY (i) N_AGENTS -> 2 and (ii) the preference sampler -> the signed
 equicorrelated DGP. The env dynamics, network, hyperparameters, losses and seeding

@@ -23,16 +23,19 @@ SHARED-STATE CONTENTION, not preference correlation per se. The central claim is
 therefore BOUNDED to common-pool / shared-state environments.** This is exactly
 the bound the reviewer asked us to find, and we report it plainly.
 
-**Experiment 2 (n=2 clean strong opposition, Critical #2 + Major #4): at genuine,
-unconfounded rho=-1, opposition does NOT beat indifference.** With n=2 the single
-pair reaches FULL rho=-1 (verified -1.0000) with no within-team-cooperation
-confound and no -1/3 PSD cap. Opposition **TIES** indifference for VDN
+**Experiment 2 (n=2 latent-target strong opposition, Critical #2 + Major #4): no
+test detects an opposition advantage.** With n=2 the single pair reaches latent-target
+rho=-1 (verified -1.0000) with no within-team-cooperation confound and no -1/3 PSD
+cap, but box constraints attenuate feasible-optimum correlation to -0.468 and reducing
+the system to two agents introduces an agent-count confound. Opposition shows **no
+detected difference** from indifference for VDN
 (diff +0.35, Welch p=0.37, MWU p=0.85) and is **directionally WORSE but only
 fragilely so** for IQL (diff +1.27, Welch p=0.041 *pooled-only*; MWU p=0.24;
 per-sigma p=0.24/0.09 -- not significant within either sigma). In NO case does
 opposition beat indifference. **Cooperation robustly beats indifference in both
-learners** (IQL -1.08, p=0.004; VDN -0.68, p=0.037). This confirms the n=4
-monotone reading -- only alignment helps -- at honest, unconfounded rho=-1.
+learners** (IQL -1.08, p=0.004; VDN -0.68, p=0.037). These within-n=2 results are
+directionally consistent with the n=4 reading, but they neither establish equivalence
+nor remove the feasible-correlation and agent-count qualifications.
 
 Both controls **strengthen the paper's honest core** (alignment is the structural
 factor) while **bounding it** (the law lives in shared-state friction).
@@ -49,10 +52,12 @@ factor) while **bounding it** (the law lives in shared-state friction).
 - **Learners:** IQL (independent) + VDN (centralized value decomposition), the
   exact `results/review_upgrade/b_vdn_runner.py` machinery (BatchedQNet,
   JointReplayBuffer, matched per-condition seeds, eps schedule, hyperparameters).
-- **Matched seeds:** cond-seeds drawn from the master RNG in fixed (rho x sigma)
-  order, independent of mode -> IQL (GPU0) and VDN (GPU1) saw identical preference
-  draws & inits, so the halves are mergeable and any mode difference is the
-  algorithm alone.
+- **Matched condition schedule:** cond-seeds are drawn from the master RNG in fixed
+  (rho x sigma) order, independent of mode, so IQL (GPU0) and VDN (GPU1) used
+  matched preference draws. The archived runs predate deterministic PyTorch seeding,
+  so identical network initializations are not claimed. Moreover, IQL uses individual
+  rewards while VDN uses team reward; mode contrasts compare learner/objective bundles,
+  not algorithm alone.
 - **Stats:** all test statistics extracted via the **named scipy attributes**
   (`.statistic` / `.pvalue`, plus `linregress.slope/.rvalue/.pvalue`,
   `f_oneway`) -- no positional tuple unpacking (the smell flagged in the prior
@@ -118,18 +123,21 @@ to its own target regardless of what the others want; rho cannot bind.)
 
 ---
 
-## EXPERIMENT 2 -- n=2 CLEAN STRONG-OPPOSITION (Critical #2 + Major #4)
+## EXPERIMENT 2 -- n=2 LATENT-TARGET STRONG OPPOSITION (Critical #2 + Major #4)
 
 **Question.** The n=4 team DGP confounds strong between-team OPPOSITION with strong
 within-team COOPERATION, and equicorrelated n=4 is PSD-capped at rho=-1/3 -- so the
-paper never had a clean strong-adversarial point. With n=2 there is exactly ONE
-pair, so equicorrelated rho reaches FULL -1 with NO confound. At genuine rho=-1,
+paper never had a latent-target strong-adversarial point. With n=2 there is exactly ONE
+pair, so equicorrelated latent rho reaches -1 without the within-team confound. The
+feasible-optimum correlation is only -0.468 after box constraints, and n=2 differs from
+the headline n=4 system. At latent-target rho=-1,
 does opposition BEAT, TIE, or LOSE to indifference?
 
 **Design.** `n2_runner.py`: the SAME shared-pool main env (`b_vdn_runner.run_condition`,
 UNCHANGED), monkeypatching only N_AGENTS=2 and the signed equicorr sampler.
 rho in {-1.0,-0.6,-0.2,0,0.4,0.8}, sigma in {0.6,1.0}, IQL+VDN, 30 reps, 1000 ep.
-Realised pairwise corr verified (rho=-1 -> -1.0000).
+Realised latent pairwise corr verified (rho=-1 -> -1.0000); feasible-optimum
+correlation is -0.4679.
 
 **Result -- normalized gap dR/sigma vs rho (pooled over sigma):**
 
@@ -145,9 +153,10 @@ Realised pairwise corr verified (rho=-1 -> -1.0000).
 | IQL | 5.313 (sd 4.27) | 4.043 (sd 2.08) | 2.960 | **+1.270** [+0.05, +2.49] | +2.07, **0.041** | 0.24 | -1.083, **0.0045** |
 | VDN | 3.624 (sd 2.50) | 3.279 (sd 1.60) | 2.602 | +0.345 [-0.42, +1.11] | +0.90, 0.37 | 0.85 | -0.677, **0.037** |
 
-**VERDICT (Exp2): at genuine unconfounded rho=-1, opposition does NOT beat
-indifference.**
-- **VDN: opposition TIES indifference** (diff +0.35, Welch p=0.37, MWU p=0.85).
+**VERDICT (Exp2): at latent-target rho=-1, no test detects an opposition advantage;
+the control is qualified by feasible correlation -0.468 and the n=2 agent-count change.**
+- **VDN: no detected difference from indifference** (diff +0.35, Welch p=0.37,
+  MWU p=0.85); this is a non-detection, not equivalence.
 - **IQL: opposition is directionally WORSE, but the significance is FRAGILE** --
   the Welch p=0.041 is *pooled-only*; the rank-based MWU is n.s. (p=0.24), and
   neither sigma alone is significant (sigma=0.6 p=0.24, sigma=1.0 p=0.09). The
@@ -161,10 +170,11 @@ indifference.**
   "monotone-ish, opposition-region elevated" rather than strictly monotone. The
   direction (opposition region > indifference > cooperation) is unambiguous.
 
-This is the clean strong-adversarial test the n=4 design could not give, and it
-confirms the prior honest conclusion: **only alignment helps; genuine opposition
-(even at rho=-1) is at best tied with, and for independent learners weakly worse
-than, indifference.** Plot: `exp2_n2_gap_vs_rho.png`.
+This extends the latent target to rho=-1 without the within-team confound, but it is
+not a clean n=4 adversarial test: feasible opposition is attenuated and agent count
+changes. Within those bounds, no test detects an opposition advantage; IQL is weakly
+worse in one pooled comparison and VDN remains an unbounded non-detection. Plot:
+`exp2_n2_gap_vs_rho.png`.
 
 ---
 
@@ -176,8 +186,8 @@ than, indifference.** Plot: `exp2_n2_gap_vs_rho.png`.
    *common-pool* coordination, not of preference correlation in the abstract.
 2. **Exp2 IQL significance is fragile.** The "opposition worse" effect for IQL is
    Welch-pooled-significant only (p=0.041), MWU-n.s. and per-sigma-n.s., driven by
-   a heavy-tailed opposition distribution. We therefore claim only "opposition does
-   not beat indifference" (robust) -- not "opposition is significantly worse."
+   a heavy-tailed opposition distribution. We therefore report that no test detects
+   an opposition advantage -- not equivalence and not a robust significant penalty.
 3. **Separable absolute level is set by a clamping floor.** With pool states in
    [0,capacity] and targets ~ N(0,1) (so ~half are negative and unreachable), the
    separable gap has an irreducible floor; this floor is rho-invariant (marginal
@@ -188,7 +198,7 @@ than, indifference.** Plot: `exp2_n2_gap_vs_rho.png`.
 5. **sigma resolution** = 2 levels (as in the prior runs); not the focus.
 6. **Single env family** (ResourceAllocationEnv and its separable twin). The two
    controls probe the two structural axes the reviewer named (shared-vs-separable
-   state, confound-free strong opposition); other env families are future work.
+   state, latent-target strong opposition); other env families are future work.
 
 ---
 

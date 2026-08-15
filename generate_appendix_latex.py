@@ -1,15 +1,29 @@
 #!/usr/bin/env python3
-"""
-Generate paper-ready LaTeX content for MARL experiment appendix.
-Reads GPU factorial results, runs statistical analysis, produces publication-quality tables.
+"""SUPERSEDED appendix generator for the historical pre-fix factorial.
+
+This script is retained only so the February analysis remains inspectable.  It reads
+``results/gpu_factorial`` and must not be used to regenerate current manuscript tables.
+The canonical post-fix generator is
+``results/gpu_factorial_postfix/regenerate_tables.py``.
+
+Direct execution stops unless ``--allow-superseded`` is supplied explicitly.
 """
 
+import sys
 import pandas as pd
 import numpy as np
 from scipy import stats
 from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
+
+if "--allow-superseded" not in sys.argv:
+    raise SystemExit(
+        "Superseded pre-fix generator. Use "
+        "results/gpu_factorial_postfix/regenerate_tables.py, or pass "
+        "--allow-superseded only to audit the historical February output."
+    )
+sys.argv.remove("--allow-superseded")
 
 # ============================================================================
 # PATHS
@@ -21,6 +35,18 @@ GPU_REG = BASE / "results/gpu_factorial/analysis/regressions.csv"
 CPU_REP = BASE / "results/full_factorial/replication_results.csv"
 OUTDIR = BASE / "results/gpu_factorial/analysis/latex"
 OUTDIR.mkdir(parents=True, exist_ok=True)
+
+required_historical = [GPU_REP, GPU_METRICS, GPU_REG]
+missing_historical = [path for path in required_historical if not path.is_file()]
+if missing_historical:
+    missing_lines = "\n".join(f"  - {path.relative_to(BASE)}" for path in missing_historical)
+    raise SystemExit(
+        "Historical pre-fix inputs are not present:\n"
+        f"{missing_lines}\n"
+        "Download the archived v2 data under concept DOI 10.5281/zenodo.20636467 "
+        "to inspect this superseded generator. For current manuscript tables, use "
+        "results/gpu_factorial_postfix/regenerate_tables.py instead."
+    )
 
 # ============================================================================
 # LOAD DATA
@@ -89,8 +115,8 @@ print("\nRunning factorial ANOVA...")
 
 from itertools import product
 
-# Build design matrix for full factorial ANOVA (Type III SS)
-# Using OLS since scipy doesn't do multi-way ANOVA natively
+# Balanced-factorial marginal sums of squares (Type I-style decomposition).
+# This is historical code, not a Type III implementation.
 from numpy.linalg import lstsq
 
 def anova_ss(data, dv, factors):
@@ -731,7 +757,7 @@ appendix_prose += r"""\subsubsection{Agent Inequality}
 """
 
 gini_by_alpha = df.groupby('alpha')['gini'].mean()
-appendix_prose += f"""Beyond aggregate performance, we examine how friction affects the \emph{{distribution}} of rewards across agents. The Gini coefficient of agent rewards serves as a measure of within-condition inequality. Figure~\\ref{{fig:marl-gini-alpha}} shows Gini as a function of alignment. At high alignment ($\\alpha = 0.8$), the mean Gini coefficient is ${gini_by_alpha.iloc[-1]:.4f}$, indicating relatively equitable reward distribution. At adversarial alignment ($\\alpha = -0.8$), Gini rises to ${gini_by_alpha.iloc[0]:.4f}$"""
+appendix_prose += f"""Beyond aggregate performance, we examine how friction affects the \\emph{{distribution}} of rewards across agents. The Gini coefficient of agent rewards serves as a measure of within-condition inequality. Figure~\\ref{{fig:marl-gini-alpha}} shows Gini as a function of alignment. At high alignment ($\\alpha = 0.8$), the mean Gini coefficient is ${gini_by_alpha.iloc[-1]:.4f}$, indicating relatively equitable reward distribution. At adversarial alignment ($\\alpha = -0.8$), Gini rises to ${gini_by_alpha.iloc[0]:.4f}$"""
 
 if gini_by_alpha.iloc[0] > gini_by_alpha.iloc[-1]:
     appendix_prose += ", confirming that misalignment not only reduces aggregate welfare but concentrates losses asymmetrically across agents.\n\n"

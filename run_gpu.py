@@ -68,8 +68,8 @@ POLICY_SAMPLE_INTERVAL = 200
 LEARNING_CURVE_WINDOW = 50
 
 # Held-out frozen-evaluation episodes per replication. Kept at 50 (not the 100 used by
-# the mode comparison) because this factorial runs 125 conditions: each eval pass costs
-# ~EVAL_EPISODES/n_episodes of the training budget, so 2 passes x 50 adds ~10% overall.
+# the mode comparison) because this factorial runs 125 conditions. The CLI can reduce
+# this for smoke tests, but manuscript runs must record the chosen value in their output.
 EVAL_EPISODES = 50
 
 
@@ -170,6 +170,7 @@ def run_condition(
     seed: int,
     action_map_gpu: torch.Tensor,
     probe_states_gpu: torch.Tensor,
+    n_eval_episodes: int = EVAL_EPISODES,
 ) -> Tuple[List[dict], Dict[str, np.ndarray], Dict[str, np.ndarray]]:
     """Run all replications for one condition on GPU.
 
@@ -219,7 +220,7 @@ def run_condition(
     probe = probe_states_gpu.unsqueeze(0).expand(N, -1, -1)
 
     # Tracking
-    n_windows = n_episodes // LEARNING_CURVE_WINDOW
+    n_windows = (n_episodes + LEARNING_CURVE_WINDOW - 1) // LEARNING_CURVE_WINDOW
     learning_curves = torch.zeros(n_reps, n_windows, device=device)
     window_accum = torch.zeros(n_reps, device=device)
     window_count = 0
@@ -228,7 +229,8 @@ def run_condition(
     policy_history = [[[] for _ in range(N_AGENTS)] for _ in range(n_reps)]
 
     # Last 100 episodes rewards
-    last100_rewards = torch.zeros(n_reps, 100, N_AGENTS, device=device)
+    n_tail = min(100, n_episodes)
+    last100_rewards = torch.zeros(n_reps, n_tail, N_AGENTS, device=device)
 
     global_step = 0
     _can_train = False  # avoid GPU sync every step after warmup
@@ -341,8 +343,8 @@ def run_condition(
             window_count = 0
 
         # Last 100 episodes
-        if ep >= n_episodes - 100:
-            last100_rewards[:, ep - (n_episodes - 100)] = ep_rewards / EPISODE_LENGTH
+        if ep >= n_episodes - n_tail:
+            last100_rewards[:, ep - (n_episodes - n_tail)] = ep_rewards / EPISODE_LENGTH
 
         # Policy vectors (every POLICY_SAMPLE_INTERVAL or last episode)
         if ep % POLICY_SAMPLE_INTERVAL == 0 or ep == n_episodes - 1:
@@ -358,14 +360,18 @@ def run_condition(
                     dist = (1 - eps) * dist + eps * (1.0 / act_dim)
                     policy_history[r][a].append(dist)
 
+    if window_count:
+        learning_curves[:, n_windows - 1] = window_accum / window_count
+
     # --- Frozen held-out evaluation ---
     # Training reward here is the mean over the last 100 TRAINING episodes, collected
     # with eps-greedy exploration still on (EPS_END) and on NOISY observations. For the
     # one factorial that varies epsilon, that statistic conflates "the learned policy is
-    # worse" with "the measurement is noisier". Two frozen passes separate them:
+    # worse" with "the measurement is noisier". Three frozen passes separate them:
     #   eval_reward_clean   -- greedy, held-out resets, NO obs-noise -> policy quality
     #   eval_reward_matched -- same, but noise re-injected at this condition's epsilon
-    # Their difference isolates the measurement-noise component of any epsilon effect.
+    #   eval_reward_explore_001 -- matched noise plus the 1% action-exploration floor
+    # Common reset states make their differences interpretable as protocol contrasts.
     # Closures mirror the training-loop dynamics above exactly.
     def _reset_fn(gen):
         return torch.rand(n_reps, N_RESOURCES, device=device, generator=gen) * CAPACITY
@@ -379,16 +385,31 @@ def run_condition(
         rew = (weights_t * -(diff ** 2)).sum(dim=2)
         return new_s, rew
 
+    eval_seed = int(seed + 1_000_003)
+    eval_rng = np.random.default_rng(eval_seed)
+    eval_initial_np = eval_rng.uniform(
+        0.0, CAPACITY, size=(n_eval_episodes, n_reps, N_RESOURCES)
+    ).astype(np.float32)
+    eval_initial = torch.tensor(eval_initial_np, device=device)
+
     eval_clean = evaluate_frozen(
         q_net, _reset_fn, _observe_fn, _step_fn, action_map_delta,
         n_reps, N_AGENTS, obs_dim, act_dim, device,
-        eval_seed=seed + 10_000, n_eval_episodes=EVAL_EPISODES, eval_eps=0.0,
+        eval_seed=eval_seed, n_eval_episodes=n_eval_episodes, eval_eps=0.0,
+        initial_states=eval_initial,
     )  # (R, A)
     eval_matched = evaluate_frozen(
         q_net, _reset_fn, _observe_fn, _step_fn, action_map_delta,
         n_reps, N_AGENTS, obs_dim, act_dim, device,
-        eval_seed=seed + 20_000, n_eval_episodes=EVAL_EPISODES,
-        eval_eps=cond_epsilon,
+        eval_seed=eval_seed + 1, n_eval_episodes=n_eval_episodes,
+        eval_eps=cond_epsilon, initial_states=eval_initial,
+    )  # (R, A)
+    eval_explore = evaluate_frozen(
+        q_net, _reset_fn, _observe_fn, _step_fn, action_map_delta,
+        n_reps, N_AGENTS, obs_dim, act_dim, device,
+        eval_seed=eval_seed + 2, n_eval_episodes=n_eval_episodes,
+        eval_eps=cond_epsilon, initial_states=eval_initial,
+        action_epsilon=EPS_END,
     )  # (R, A)
 
     # --- Build output ---
@@ -396,7 +417,7 @@ def run_condition(
     policy_dict = {}
     lc_dict = {}
 
-    last100_cpu = last100_rewards.cpu().numpy()  # (R, 100, A)
+    last100_cpu = last100_rewards.cpu().numpy()  # (R, min(100,E), A)
     lc_cpu = learning_curves.cpu().numpy()       # (R, W)
 
     for r in range(n_reps):
@@ -418,6 +439,15 @@ def run_condition(
             "mean_reward": float(last_rew.mean()),
             "eval_reward_clean": float(eval_clean[r].mean()),
             "eval_reward_matched": float(eval_matched[r].mean()),
+            "eval_reward_explore_001": float(eval_explore[r].mean()),
+            "observation_noise_cost": float(
+                eval_clean[r].mean() - eval_matched[r].mean()
+            ),
+            "exploration_cost_001": float(
+                eval_matched[r].mean() - eval_explore[r].mean()
+            ),
+            "eval_seed": eval_seed,
+            "n_eval_episodes": n_eval_episodes,
             # train - eval(clean): how much of training reward is exploration/noise
             # rather than learned policy quality.
             "eval_gap": float(last_rew.mean() - eval_clean[r].mean()),
@@ -439,6 +469,10 @@ def run_gpu_factorial(
     seed: int = 42,
     output_dir: Path = Path("./results/gpu_factorial"),
     device_id: int = 0,
+    alphas: list[float] | None = None,
+    sigmas: list[float] | None = None,
+    epsilons: list[float] | None = None,
+    n_eval_episodes: int = EVAL_EPISODES,
 ):
     device = torch.device(f"cuda:{device_id}")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -447,7 +481,7 @@ def run_gpu_factorial(
     policy_path = output_dir / "policy_vectors.npz"
     lc_path = output_dir / "learning_curves.npz"
 
-    conditions = generate_conditions()
+    all_conditions = generate_conditions()
     action_map = build_action_map(N_RESOURCES)
     action_map_gpu = torch.tensor(action_map, device=device)
 
@@ -457,7 +491,20 @@ def run_gpu_factorial(
     probe_gpu = torch.tensor(probe_states, device=device)
 
     # Pre-generate per-condition seeds (deterministic)
-    condition_seeds = [int(master_rng.integers(0, 2**62)) for _ in conditions]
+    all_condition_seeds = [
+        int(master_rng.integers(0, 2**62)) for _ in all_conditions
+    ]
+    selected = [
+        (cond, cond_seed)
+        for cond, cond_seed in zip(all_conditions, all_condition_seeds)
+        if (alphas is None or cond.alpha in alphas)
+        and (sigmas is None or cond.sigma in sigmas)
+        and (epsilons is None or cond.epsilon in epsilons)
+    ]
+    if not selected:
+        raise ValueError("The requested factor filters select no conditions")
+    conditions = [cond for cond, _ in selected]
+    condition_seeds = [cond_seed for _, cond_seed in selected]
 
     # Load existing results for resumability
     completed = set()
@@ -467,6 +514,15 @@ def run_gpu_factorial(
 
     if replication_path.exists():
         existing = pd.read_csv(replication_path)
+        required_eval = {
+            "eval_reward_clean", "eval_reward_matched",
+            "eval_reward_explore_001", "n_eval_episodes",
+        }
+        if not required_eval.issubset(existing.columns):
+            raise ValueError(
+                f"{replication_path} predates the frozen-evaluation schema; "
+                "choose a new output directory rather than mixing protocols"
+            )
         all_rep_rows = existing.to_dict(orient="records")
         for _, row in existing.iterrows():
             completed.add((row["alpha"], row["sigma"], row["epsilon"]))
@@ -511,6 +567,7 @@ def run_gpu_factorial(
                 seed=cseed,
                 action_map_gpu=action_map_gpu,
                 probe_states_gpu=probe_gpu,
+                n_eval_episodes=n_eval_episodes,
             )
 
             all_rep_rows.extend(rep_rows)
@@ -593,6 +650,10 @@ def parse_args():
     p.add_argument("--n-episodes", type=int, default=1000)
     p.add_argument("--output-dir", type=str, default="./results/gpu_factorial")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--alphas", type=float, nargs="+", default=None)
+    p.add_argument("--sigmas", type=float, nargs="+", default=None)
+    p.add_argument("--epsilons", type=float, nargs="+", default=None)
+    p.add_argument("--n-eval-episodes", type=int, default=EVAL_EPISODES)
     p.add_argument("--device", type=int, default=0, help="CUDA device ID (0=7900XTX, 1=7800XT)")
     return p.parse_args()
 
@@ -605,4 +666,8 @@ if __name__ == "__main__":
         seed=args.seed,
         output_dir=Path(args.output_dir),
         device_id=args.device,
+        alphas=args.alphas,
+        sigmas=args.sigmas,
+        epsilons=args.epsilons,
+        n_eval_episodes=args.n_eval_episodes,
     )

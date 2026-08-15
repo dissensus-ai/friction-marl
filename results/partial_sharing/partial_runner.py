@@ -11,10 +11,10 @@ Two endpoints are already on disk:
     -- each agent has its OWN independent pool; the gap-vs-rho curve is FLAT
     (slope ~= -0.029 / -0.053).
 
-Reviewer #5's request: parametrically vary the DEGREE of shared-state contention
-between these extremes and show the alignment-gap slope SCALES with that degree.
-If contention DEGREE mediates the alignment effect, |slope| should rise
-monotonically from ~0 at w=0 to ~0.8 at w=1.
+The control parametrically varies the DEGREE of shared-state contention between
+these extremes. If contention degree modulates the alignment effect, |slope|
+should rise with w. This is an exploratory interaction test, not a causal
+mediation design and not a prespecified confirmation.
 
 THE OVERLAP CONSTRUCTION  (fraction-of-resources-shared)
 --------------------------------------------------------
@@ -49,15 +49,18 @@ both endpoint runs, so the preference structure is held fixed across overlap lev
 
 Everything else -- BatchedQNet, JointReplayBuffer, optimizer, hyperparameters,
 eps schedule, IQL/VDN losses, policy probe, per-condition matched seeds -- is
-IMPORTED VERBATIM from `b_vdn_runner`, so any change in the gap-vs-rho slope is
-attributable to the overlap degree alone.
+IMPORTED VERBATIM from `b_vdn_runner`. The controlled implementation difference is
+the overlap degree; the analysis still supports only an environment-specific
+modulation result, not a universal causal mechanism.
 
-Matched-seed property: cond_seeds are drawn from the master RNG in fixed
-(overlap x rho x sigma) order, independent of --mode, so IQL (GPU0) and VDN (GPU1)
-see identical preference draws & inits for the same (w,rho,sigma) and are mergeable.
+Matched-seed property: one base seed is drawn for each (rho,sigma) and reused at
+every overlap level, independent of --mode. Thus problem instances are paired
+across w as well as across IQL/VDN. Runs made after deterministic Torch seeding
+was added also pair initialization and stochastic training streams; archived CSVs
+predating that fix do not establish matched initializations.
 
-Output CSV columns: mode, overlap_k, w, rho, sigma, epsilon, env='partial',
-replication, agent_*_reward, mean_reward, convergence_time.
+Output also records frozen clean/matched-noise/exploration evaluations, condition
+and evaluation seeds, target support, and a problem-instance hash.
 """
 from __future__ import annotations
 
@@ -76,12 +79,16 @@ REPO = HERE.parent.parent
 sys.path.insert(0, str(REPO))
 
 import results.review_upgrade.b_vdn_runner as vr  # noqa: E402
-from results.adversarial_rerun.dgp import sample_agent_params_equicorr  # noqa: E402
+from results.adversarial_rerun.dgp import (  # noqa: E402
+    sample_agent_params_equicorr,
+    sample_agent_params_equicorr_feasible,
+)
 from friction_marl.experiments.factorial_design import build_action_map  # noqa: E402
 
 # import the EXACT machinery / hyperparameters used by the shared-pool runner
 from results.review_upgrade.b_vdn_runner import (  # noqa: E402
     BatchedQNet, JointReplayBuffer,
+    problem_instance_hash,
     MAPPOConfig, _mappo_train, evaluate_frozen,
     N_AGENTS, N_RESOURCES, HIDDEN_DIM, LR, GAMMA,
     EPS_START, EPS_END, EPS_DECAY, BUFFER_CAPACITY, BATCH_SIZE, TAU,
@@ -138,7 +145,8 @@ def run_condition_partial(sampler, overlap_k, rho, sigma, cond_eps, mode, n_reps
     action_map_delta = action_map_gpu.float()
     probe = probe_gpu.unsqueeze(0).expand(N, -1, -1)
 
-    last100 = torch.zeros(R, 100, A, device=device)
+    n_tail = min(100, n_episodes)
+    last100 = torch.zeros(R, n_tail, A, device=device)
     policy_history = [[[] for _ in range(A)] for _ in range(R)]
     global_step = 0
     can_train = False
@@ -148,8 +156,12 @@ def run_condition_partial(sampler, overlap_k, rho, sigma, cond_eps, mode, n_reps
         # per (rep, column) broadcast across agents (a single shared pool); PRIVATE
         # columns are per-agent. (k=M => fully shared init == main env;
         #                          k=0 => fully per-agent init == separable env.)
-        states = torch.rand(R, A, M, device=device) * CAPACITY
-        if k > 0:
+        if k == M:
+            common_init = torch.rand(R, 1, M, device=device) * CAPACITY
+            states = common_init.expand(R, A, M).clone()
+        else:
+            states = torch.rand(R, A, M, device=device) * CAPACITY
+        if 0 < k < M:
             common_init = torch.rand(R, 1, k, device=device) * CAPACITY
             states[:, :, :k] = common_init.expand(R, A, k)
         ep_rewards = torch.zeros(R, A, device=device)
@@ -158,7 +170,8 @@ def run_condition_partial(sampler, overlap_k, rho, sigma, cond_eps, mode, n_reps
             global_step += 1
             obs_all = states                                   # (R,A,M) own row
             if cond_eps > 0:
-                noise = torch.randn(R, A, M, device=device, generator=noise_gen) * cond_eps
+                noise = (torch.randn(R, A, M, device=device, generator=noise_gen)
+                         * (cond_eps ** 0.5))
                 obs_in = obs_all + noise
             else:
                 obs_in = obs_all
@@ -188,7 +201,13 @@ def run_condition_partial(sampler, overlap_k, rho, sigma, cond_eps, mode, n_reps
             diff = new_states - targets_t                       # (R,A,M)
             rewards = (weights_t * -(diff ** 2)).sum(dim=2)     # (R,A)
 
-            nobs = new_states                                   # each agent's OWN next row
+            if cond_eps > 0:
+                nobs = new_states + (
+                    torch.randn(R, A, M, device=device, generator=noise_gen)
+                    * (cond_eps ** 0.5)
+                )
+            else:
+                nobs = new_states                               # each agent's OWN next row
             done_val = 1.0 if step == EPISODE_LENGTH - 1 else 0.0
 
             buf.push(obs_in, act_idx.reshape(R, A), rewards,
@@ -235,8 +254,8 @@ def run_condition_partial(sampler, overlap_k, rho, sigma, cond_eps, mode, n_reps
                 optimizer.step()
                 target_net.soft_update_from(q_net, TAU)
 
-        if ep >= n_episodes - 100:
-            last100[:, ep - (n_episodes - 100)] = ep_rewards / EPISODE_LENGTH
+        if ep >= n_episodes - n_tail:
+            last100[:, ep - (n_episodes - n_tail)] = ep_rewards / EPISODE_LENGTH
 
         if ep % POLICY_SAMPLE_INTERVAL == 0 or ep == n_episodes - 1:
             with torch.no_grad():
@@ -249,7 +268,28 @@ def run_condition_partial(sampler, overlap_k, rho, sigma, cond_eps, mode, n_reps
                     policy_history[r][ag].append(dist)
 
     # --- frozen held-out eval (additive; no optimizer.step / buf.push / soft_update) ---
+    eval_seed = int(seed + 1_000_003)
+    eval_rng = np.random.default_rng(eval_seed)
+    if k == M:
+        shared = eval_rng.uniform(
+            0.0, CAPACITY, size=(n_eval_episodes, R, 1, M)
+        ).astype(np.float32)
+        eval_initial_np = np.repeat(shared, A, axis=2)
+    else:
+        eval_initial_np = eval_rng.uniform(
+            0.0, CAPACITY, size=(n_eval_episodes, R, A, M)
+        ).astype(np.float32)
+    if 0 < k < M:
+        shared = eval_rng.uniform(
+            0.0, CAPACITY, size=(n_eval_episodes, R, 1, k)
+        ).astype(np.float32)
+        eval_initial_np[:, :, :, :k] = np.repeat(shared, A, axis=2)
+    eval_initial = torch.tensor(eval_initial_np, device=device)
+
     def _reset(gen):
+        if k == M:
+            common = torch.rand(R, 1, M, device=device, generator=gen) * CAPACITY
+            return common.expand(R, A, M).clone()
         st = torch.rand(R, A, M, device=device, generator=gen) * CAPACITY
         if k > 0:
             st[:, :, :k] = (torch.rand(R, 1, k, device=device, generator=gen) * CAPACITY).expand(R, A, k)
@@ -267,9 +307,22 @@ def run_condition_partial(sampler, overlap_k, rho, sigma, cond_eps, mode, n_reps
         d = ns - targets_t
         return ns, (weights_t * -(d ** 2)).sum(dim=2)
 
-    eval_rew = evaluate_frozen(q_net, _reset, _observe, _step, action_map_delta,
-                               R, A, obs_dim, act_dim, device, seed + 1_000_003,
-                               n_eval_episodes, eval_eps)  # (R,A)
+    eval_clean = evaluate_frozen(
+        q_net, _reset, _observe, _step, action_map_delta,
+        R, A, obs_dim, act_dim, device, eval_seed,
+        n_eval_episodes, 0.0, initial_states=eval_initial,
+    )
+    eval_matched = evaluate_frozen(
+        q_net, _reset, _observe, _step, action_map_delta,
+        R, A, obs_dim, act_dim, device, eval_seed + 1,
+        n_eval_episodes, cond_eps, initial_states=eval_initial,
+    )
+    eval_explore = evaluate_frozen(
+        q_net, _reset, _observe, _step, action_map_delta,
+        R, A, obs_dim, act_dim, device, eval_seed + 2,
+        n_eval_episodes, cond_eps, initial_states=eval_initial,
+        action_epsilon=EPS_END,
+    )
 
     last100_cpu = last100.cpu().numpy()
     rows = []
@@ -283,7 +336,20 @@ def run_condition_partial(sampler, overlap_k, rho, sigma, cond_eps, mode, n_reps
             **{f"agent_{i}_reward": float(last_rew[i]) for i in range(A)},
             "mean_reward": float(last_rew.mean()),
             "convergence_time": float(np.mean(conv)),
-            "eval_gap": float(-eval_rew[r].mean()),
+            "eval_reward": float(eval_clean[r].mean()),
+            "eval_gap": float(-eval_clean[r].mean()),
+            "eval_reward_clean": float(eval_clean[r].mean()),
+            "eval_reward_matched": float(eval_matched[r].mean()),
+            "eval_reward_explore_001": float(eval_explore[r].mean()),
+            "eval_seed": eval_seed,
+            "condition_seed": int(seed),
+            "problem_instance_sha256": problem_instance_hash(weights_np[r], targets_np[r]),
+            "n_eval_episodes": n_eval_episodes,
+            "observation_noise_cost": float(eval_clean[r].mean() - eval_matched[r].mean()),
+            "exploration_cost_001": float(eval_matched[r].mean() - eval_explore[r].mean()),
+            "training_window_minus_frozen_explore": float(
+                last_rew.mean() - eval_explore[r].mean()
+            ),
         })
     return rows
 
@@ -332,12 +398,18 @@ def _run_condition_partial_mappo(sampler, overlap_k, rho, sigma, cond_eps, n_rep
     noise_std = cond_eps ** 0.5
 
     def train_reset():
+        if k == M:
+            common = torch.rand(R, 1, M, device=device) * CAPACITY
+            return common.expand(R, A, M).clone()
         st = torch.rand(R, A, M, device=device) * CAPACITY
         if k > 0:
             st[:, :, :k] = (torch.rand(R, 1, k, device=device) * CAPACITY).expand(R, A, k)
         return st
 
     def eval_reset(gen):
+        if k == M:
+            common = torch.rand(R, 1, M, device=device, generator=gen) * CAPACITY
+            return common.expand(R, A, M).clone()
         st = torch.rand(R, A, M, device=device, generator=gen) * CAPACITY
         if k > 0:
             st[:, :, :k] = (torch.rand(R, 1, k, device=device, generator=gen) * CAPACITY).expand(R, A, k)
@@ -379,6 +451,11 @@ def main():
     ap.add_argument("--epsilon", type=float, default=0.0)
     ap.add_argument("--n-reps", type=int, default=30)
     ap.add_argument("--n-episodes", type=int, default=1000)
+    ap.add_argument("--n-eval-episodes", type=int, default=100)
+    ap.add_argument(
+        "--target-support", choices=["legacy-gaussian0", "feasible-centered"],
+        default="legacy-gaussian0",
+    )
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--device", type=str, default="0")
     ap.add_argument("--out", type=str, required=True)
@@ -397,12 +474,21 @@ def main():
     probe_gpu = torch.tensor(probe, device=device)
 
     # Fixed (overlap x rho x sigma) draw order, independent of --mode => matched
-    # preference draws & inits for the same (w,rho,sigma) across IQL/VDN processes.
+    # preference draws for the same (w,rho,sigma) across IQL/VDN processes.
     cond_keys = [(k, a, s) for k in args.overlaps for a in args.rhos for s in args.sigmas]
-    cond_seeds = {key: int(master.integers(0, 2**62)) for key in cond_keys}
+    # Block the overlap manipulation on one shared problem instance: for a given
+    # (rho,sigma), every k receives the same preferences and initial network weights.
+    # This makes the dose response paired instead of letting target draws drift with k.
+    base_keys = [(a, s) for a in args.rhos for s in args.sigmas]
+    base_seeds = {key: int(master.integers(0, 2**62)) for key in base_keys}
+    cond_seeds = {(k, a, s): base_seeds[(a, s)] for k, a, s in cond_keys}
 
     all_rows: List[dict] = []
     out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    sampler = (sample_agent_params_equicorr_feasible
+               if args.target_support == "feasible-centered"
+               else sample_agent_params_equicorr)
     t0 = time.time()
     total = len(args.modes) * len(cond_keys)
     done = 0
@@ -414,9 +500,12 @@ def main():
         for (k, rho, s) in cond_keys:
             tc = time.time()
             rows = run_condition_partial(
-                sample_agent_params_equicorr, k, rho, s, args.epsilon, mode,
+                sampler, k, rho, s, args.epsilon, mode,
                 args.n_reps, args.n_episodes, device, cond_seeds[(k, rho, s)],
-                action_map_gpu, probe_gpu)
+                action_map_gpu, probe_gpu,
+                n_eval_episodes=args.n_eval_episodes, eval_eps=args.epsilon)
+            for row in rows:
+                row["target_support"] = args.target_support
             all_rows.extend(rows)
             done += 1
             pd.DataFrame(all_rows).to_csv(out_path, index=False)

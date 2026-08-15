@@ -5,60 +5,60 @@ rows=3750  conditions=125
 
 --- REPLICATION-LEVEL eta^2 (3750 rows) ---
 effect                           RAW gap  NORM gap/sigma
-C(alpha)                          0.0958          0.1893
-C(sigma)                          0.3965          0.0013
-C(epsilon)                        0.0079          0.0146
-C(alpha):C(sigma)                 0.0210          0.0042
-C(alpha):C(epsilon)               0.0023          0.0032
-C(sigma):C(epsilon)               0.0038          0.0044
-C(alpha):C(sigma):C(epsilon)      0.0077          0.0152
-Residual                          0.4651          0.7678
+C(alpha)                          0.0963          0.1891
+C(sigma)                          0.3894          0.0009
+C(epsilon)                        0.0082          0.0148
+C(alpha):C(sigma)                 0.0215          0.0040
+C(alpha):C(epsilon)               0.0024          0.0033
+C(sigma):C(epsilon)               0.0038          0.0041
+C(alpha):C(sigma):C(epsilon)      0.0078          0.0151
+Residual                          0.4707          0.7688
 
 --- CONDITION-LEVEL eta^2 (125 condition means) ---
 effect                           RAW gap  NORM gap/sigma
-C(alpha)                          0.1792          0.8151
-C(sigma)                          0.7412          0.0055
-C(epsilon)                        0.0147          0.0629
-C(alpha):C(sigma)                 0.0393          0.0181
-C(alpha):C(epsilon)               0.0042          0.0138
-C(sigma):C(epsilon)               0.0071          0.0190
-C(alpha):C(sigma):C(epsilon)      0.0144          0.0656
+C(alpha)                          0.1820          0.8180
+C(sigma)                          0.7356          0.0037
+C(epsilon)                        0.0155          0.0639
+C(alpha):C(sigma)                 0.0406          0.0172
+C(alpha):C(epsilon)               0.0045          0.0142
+C(sigma):C(epsilon)               0.0072          0.0179
+C(alpha):C(sigma):C(epsilon)      0.0147          0.0651
 Residual                          0.0000          0.0000
 
 --- ALPHA SYMMETRY (normalized gap means by alpha) ---
-  alpha=-0.8  raw_gap=1.6310  norm_gap=2.7197 (sd 1.627)
-  alpha=-0.4  raw_gap=1.4531  norm_gap=2.4181 (sd 0.854)
-  alpha=+0.0  raw_gap=2.4857  norm_gap=4.2007 (sd 1.578)
-  alpha=+0.4  raw_gap=1.4564  norm_gap=2.4595 (sd 0.858)
-  alpha=+0.8  raw_gap=1.5947  norm_gap=2.6965 (sd 1.673)
+  alpha=-0.8  raw_gap=1.6586  norm_gap=2.7639 (sd 1.679)
+  alpha=-0.4  raw_gap=1.4567  norm_gap=2.4256 (sd 0.874)
+  alpha=+0.0  raw_gap=2.5264  norm_gap=4.2590 (sd 1.604)
+  alpha=+0.4  raw_gap=1.4683  norm_gap=2.4723 (sd 0.872)
+  alpha=+0.8  raw_gap=1.6148  norm_gap=2.7255 (sd 1.719)
 
   Variance of normalized gap explained by alpha terms (R^2):
     signed linear (alpha)        R^2 = 0.0000
-    symmetric |alpha|            R^2 = 0.0874
-    alpha + alpha^2 (full)       R^2 = 0.0369
-    => antisymmetric(sign) share = 0.0000 of 0.0369  (0.0% of alpha-variance is sign)
-    |alpha|=0.4: gap_norm(-0.4)=2.4181  gap_norm(+0.4)=2.4595  diff=+0.0415
-    |alpha|=0.8: gap_norm(-0.8)=2.7197  gap_norm(+0.8)=2.6965  diff=-0.0232
+    symmetric |alpha|            R^2 = 0.0848
+    alpha + alpha^2 (full)       R^2 = 0.0349
+    => antisymmetric(sign) share = 0.0000 of 0.0349  (0.0% of alpha-variance is sign)
+    |alpha|=0.4: gap_norm(-0.4)=2.4256  gap_norm(+0.4)=2.4723  diff=+0.0467
+    |alpha|=0.8: gap_norm(-0.8)=2.7639  gap_norm(+0.8)=2.7255  diff=-0.0384
 
 --- ALPHA x SIGMA on NORMALIZED gap (U-depth vs stakes) ---
   rows=sigma, cols=alpha; values=normalized gap
   a=-0.8        a=-0.4        a=+0.0        a=+0.4        a=+0.8
-  sigma=0.2:  2.6644   2.3922   4.5115   2.5324   2.8098
-  sigma=0.4:  2.8972   2.3535   4.0881   2.5027   2.7563
-  sigma=0.6:  2.6533   2.5477   4.1528   2.4900   2.7038
-  sigma=0.8:  2.5625   2.4002   4.2589   2.4595   2.6294
-  sigma=1.0:  2.8210   2.3968   3.9924   2.3129   2.5831
+  sigma=0.2:  2.6922   2.4131   4.5218   2.5238   2.8256
+  sigma=0.4:  2.9596   2.3448   4.1414   2.5119   2.7785
+  sigma=0.6:  2.6963   2.5703   4.2325   2.5001   2.7264
+  sigma=0.8:  2.5911   2.3945   4.3363   2.4701   2.6776
+  sigma=1.0:  2.8801   2.4052   4.0628   2.3558   2.6194
 
   U-depth (normalized) = gap_norm(a=0) - mean(gap_norm(a=+-0.8)), by sigma:
-    sigma=0.2: U-depth = +1.7744
-    sigma=0.4: U-depth = +1.2613
-    sigma=0.6: U-depth = +1.4743
-    sigma=0.8: U-depth = +1.6630
-    sigma=1.0: U-depth = +1.2903
+    sigma=0.2: U-depth = +1.7629
+    sigma=0.4: U-depth = +1.2724
+    sigma=0.6: U-depth = +1.5212
+    sigma=0.8: U-depth = +1.7019
+    sigma=1.0: U-depth = +1.3131
 
   U-depth (RAW) = gap(a=0) - mean(gap(a=+-0.8)), by sigma:
-    sigma=0.2: U-depth = +0.3549
-    sigma=0.4: U-depth = +0.5045
-    sigma=0.6: U-depth = +0.8846
-    sigma=0.8: U-depth = +1.3304
-    sigma=1.0: U-depth = +1.2903
+    sigma=0.2: U-depth = +0.3526
+    sigma=0.4: U-depth = +0.5089
+    sigma=0.6: U-depth = +0.9127
+    sigma=0.8: U-depth = +1.3615
+    sigma=1.0: U-depth = +1.3131

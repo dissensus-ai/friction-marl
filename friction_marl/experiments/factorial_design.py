@@ -76,9 +76,30 @@ def run_factorial_experiment(
     n_episodes: int,
     seed: int,
     output_dir: Path,
+    alphas: list[float] | None = None,
+    sigmas: list[float] | None = None,
+    epsilons: list[float] | None = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, np.ndarray]]:
-    rng = np.random.default_rng(seed)
-    conditions = generate_conditions()
+    # Give every condition x replication cell its own seed before consulting the
+    # checkpoint.  This makes a resumed run identical to an uninterrupted run:
+    # skipped cells still consume their place in the deterministic seed grid.
+    master_rng = np.random.default_rng(seed)
+    conditions = [
+        cond
+        for cond in generate_conditions()
+        if (alphas is None or cond.alpha in alphas)
+        and (sigmas is None or cond.sigma in sigmas)
+        and (epsilons is None or cond.epsilon in epsilons)
+    ]
+    if not conditions:
+        raise ValueError("The requested factor filters select no conditions")
+    replication_seeds = {
+        (cond.alpha, cond.sigma, cond.epsilon, rep): int(
+            master_rng.integers(0, 2**63 - 1)
+        )
+        for cond in conditions
+        for rep in range(n_replications)
+    }
     action_map = build_action_map(n_resources)
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -107,6 +128,9 @@ def run_factorial_experiment(
         for rep in range(n_replications):
             if (cond.alpha, cond.sigma, cond.epsilon, rep) in completed:
                 continue
+            rng = np.random.default_rng(
+                replication_seeds[(cond.alpha, cond.sigma, cond.epsilon, rep)]
+            )
             env_seed = int(rng.integers(0, 2**31 - 1))
             env = ResourceAllocationEnv(
                 EnvConfig(n_agents=n_agents, n_resources=n_resources), seed=env_seed

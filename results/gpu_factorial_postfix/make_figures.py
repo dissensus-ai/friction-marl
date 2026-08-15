@@ -21,18 +21,26 @@ Written 5 Aug 2026. Three problems this fixes at once:
 Also prints the Appendix A.2 quantities so they can be checked against the text.
 
 Run:  python3 results/gpu_factorial_postfix/make_figures.py
+
+By default figures are written beside this script, inside the repository.  A paper
+checkout may be supplied deliberately with ``--output-dir``; the generator never
+guesses a sibling repository path.
 """
+import argparse
 from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
+matplotlib.rcParams["pdf.fonttype"] = 42
+matplotlib.rcParams["ps.fonttype"] = 42
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 REPO = Path(__file__).resolve().parents[2]
 DATA = REPO / "results/gpu_factorial_postfix/replication_results.csv"
-FIGS = REPO.parent.parent / "papers-official/marl-coordination/figures"
+DEFAULT_FIGS = Path(__file__).resolve().parent / "figures"
 AGENTS = [f"agent_{i}_reward" for i in range(4)]
 BURGUNDY = "#7B2D3B"
 
@@ -48,10 +56,14 @@ def gini(row):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--output-dir", type=Path, default=DEFAULT_FIGS)
+    args = ap.parse_args()
+    figs = args.output_dir.resolve()
     d = pd.read_csv(DATA)
     d["gini"] = d[AGENTS].apply(lambda r: gini(r.values), axis=1)
     d["rvar"] = d[AGENTS].var(axis=1, ddof=0)
-    FIGS.mkdir(parents=True, exist_ok=True)
+    figs.mkdir(parents=True, exist_ok=True)
 
     # ---- main effects: ONE row (mean reward). The convergence-time row is gone.
     fig, axes = plt.subplots(1, 3, figsize=(11, 3.2))
@@ -66,7 +78,7 @@ def main():
         ax.set_title(f"range = {g['mean'].max() - g['mean'].min():.4f}", fontsize=9)
         ax.grid(alpha=.3)
     fig.tight_layout()
-    fig.savefig(FIGS / "marl_main_effects.pdf")
+    fig.savefig(figs / "marl_main_effects.pdf")
     plt.close(fig)
 
     # ---- alpha x sigma heatmap (marginalized over epsilon)
@@ -83,7 +95,7 @@ def main():
             ax.text(j, i, f"{piv.values[i, j]:.2f}", ha="center", va="center", fontsize=7)
     fig.colorbar(im, ax=ax)
     fig.tight_layout()
-    fig.savefig(FIGS / "marl_heatmap_alpha_sigma.pdf")
+    fig.savefig(figs / "marl_heatmap_alpha_sigma.pdf")
     plt.close(fig)
 
     # ---- agent-level dispersion vs alpha: variance (scale-dependent) + Gini
@@ -98,11 +110,11 @@ def main():
     for ax in axes:
         ax.grid(alpha=.3)
     fig.tight_layout()
-    fig.savefig(FIGS / "marl_agent_specialization.pdf")
+    fig.savefig(figs / "marl_agent_specialization.pdf")
     plt.close(fig)
 
     # ---- Appendix A.2 quantities, for checking against the prose
-    print("regenerated 3 figures ->", FIGS)
+    print("regenerated 3 figures ->", figs)
     print("\nAppendix A.2 quantities (post-fix):")
     print("  agent reward variance by alpha:")
     for a, v in gv.rvar.items():
@@ -114,6 +126,18 @@ def main():
     print(f"  Gini by alpha: " + ", ".join(f"{a:+.1f}={v:.3f}" for a, v in gv.gini.items()))
     cg = d.groupby(["alpha", "sigma", "epsilon"])["gini"].mean()
     print(f"  Gini range across conditions: {cg.min():.3f} - {cg.max():.3f}")
+    screens = []
+    for (alpha, sigma, epsilon), group in d.groupby(["alpha", "sigma", "epsilon"]):
+        means = group[AGENTS].mean().to_numpy()
+        best, worst = int(means.argmax()), int(means.argmin())
+        p_value = stats.ttest_ind(
+            group[AGENTS[best]], group[AGENTS[worst]], equal_var=True
+        ).pvalue
+        screens.append({"alpha": alpha, "screen": p_value < 0.05})
+    screen_rate = pd.DataFrame(screens).groupby("alpha")["screen"].mean()
+    print("  unadjusted best-vs-worst screens by alpha: " + ", ".join(
+        f"{alpha:+.1f}={rate:.0%}" for alpha, rate in screen_rate.items()
+    ))
 
 
 if __name__ == "__main__":

@@ -14,16 +14,14 @@ The three logic blocks below are lifted verbatim (parameters and all) from
   * reward convergence  -> reward-plateau within 10% of final, tick grid arange(20)*50+25
   * late-training std   -> std of last-250-episode window, grouped by alpha
 
-Reported (paper):  policy 0.85% (32/3750) | reward 99.3% | late-std ~0.04-0.06,
-alpha=0 marginally higher (0.056 vs 0.043-0.050).
+Reported (paper):  policy 0.88% (33/3750) | reward 99.2% | late-std ~0.04-0.06,
+alpha=0 marginally higher (0.055 vs 0.043-0.049).
 
-Data inputs (per-condition production data of the 5x5x5 GPU factorial):
-    results/gpu_factorial/replication_results.csv   (has convergence_time, policy_key)
-    results/gpu_factorial/learning_curves.npz        (per-run windowed reward curve)
-NOTE: both match `.gitignore` patterns (`results/**/replication_results.csv`, `*.npz`)
-and are NOT committed -- they are the Zenodo artifact bundle
-(concept DOI 10.5281/zenodo.20636467). Fetch them into results/gpu_factorial/ before
-running, or point --base at a local copy.
+Data inputs (per-condition production data of the repaired 5x5x5 GPU factorial):
+    results/gpu_factorial_postfix/replication_results.csv
+    results/gpu_factorial_postfix/learning_curves.npz
+The default is the post-fix directory that supplies the current paper. Use --base only to audit a
+different historical run.
 
 Run:  python results/gpu_factorial/analysis/a1_stability_recompute.py
 """
@@ -86,7 +84,7 @@ def late_training_std(df: pd.DataFrame, lc) -> pd.Series:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", type=Path,
-                    default=Path(__file__).resolve().parents[1])  # results/gpu_factorial
+                    default=Path(__file__).resolve().parents[2] / "gpu_factorial_postfix")
     args = ap.parse_args()
     df = pd.read_csv(args.base / "replication_results.csv")
     lc = np.load(args.base / "learning_curves.npz")
@@ -96,14 +94,14 @@ def main():
     lstd = late_training_std(df, lc)
 
     print(f"replications: {n}")
-    print(f"policy  convergence: {100*p_rate:.3f}%  ({p_n}/{n})   [paper 0.85%, 32 runs]")
-    print(f"reward  convergence: {100*r_rate:.3f}%              [paper 99.3%]")
-    print("late-training std by alpha (paper ~0.04-0.06, alpha=0 = 0.056):")
+    print(f"policy  convergence: {100*p_rate:.3f}%  ({p_n}/{n})   [paper 0.88%, 33 runs]")
+    print(f"reward  convergence: {100*r_rate:.3f}%              [paper 99.2%]")
+    print("late-training std by alpha (paper ~0.04-0.06, alpha=0 = 0.055):")
     for a, v in lstd.items():
         print(f"    alpha={a:+.1f}: {v:.3f}")
 
-    ok = (p_n == 32 and abs(p_rate - 0.0085) < 5e-4 and abs(r_rate - 0.993) < 5e-3
-          and abs(lstd.get(0.0, np.nan) - 0.056) < 5e-3)
+    ok = (p_n == 33 and abs(p_rate - 0.0088) < 5e-4 and abs(r_rate - 0.992) < 5e-3
+          and abs(lstd.get(0.0, np.nan) - 0.055) < 5e-3)
     print("\nA.1 figures reproduce the paper." if ok
           else "\n*** MISMATCH vs paper A.1 figures ***")
 

@@ -25,7 +25,7 @@ from statsmodels.stats.anova import anova_lm
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
-DATA = REPO / "results" / "gpu_factorial" / "replication_results.csv"
+DATA = REPO / "results" / "gpu_factorial_postfix" / "replication_results.csv"
 OUT = HERE
 
 

@@ -9,8 +9,9 @@ tuple-vs-float ambiguity flagged in the prior adversarial_rerun/analyze.py.
     gap-vs-rho curve go FLAT (=> the friction was shared-state contention)?
     Compared head-to-head with the shared-pool equicorr run.
 
-(B) n=2 CLEAN STRONG-OPPOSITION: at genuine unconfounded rho=-1, does opposition
-    BEAT / TIE / LOSE to indifference (rho=0)?  Welch contrast + 95% CI + p.
+(B) n=2 LATENT-TARGET STRONG OPPOSITION: at target rho=-1 (feasible-optimum
+    correlation -0.468 after box constraints, plus an agent-count confound), is
+    there a detected difference from indifference? Welch contrast + 95% CI + p.
 """
 from __future__ import annotations
 
@@ -193,14 +194,24 @@ def experiment1():
 # ============================ EXPERIMENT 2 ============================ #
 def experiment2():
     p("\n\n" + "#" * 84)
-    p("# EXPERIMENT 2 -- n=2 CLEAN STRONG-OPPOSITION (reviewer3 Critical #2)")
+    p("# EXPERIMENT 2 -- n=2 LATENT-TARGET STRONG OPPOSITION (reviewer3 Critical #2)")
     p("#" * 84)
     d = load(HERE / "n2_iql.csv", HERE / "n2_vdn.csv")
+    feasible_table = pd.read_csv(ADV / "feasible_correlation.csv")
+    feasible_row = feasible_table[
+        (feasible_table["n_agents"] == 2)
+        & np.isclose(feasible_table["rho_nominal"], -1.0)
+    ]
+    if len(feasible_row) != 1:
+        raise ValueError("expected one n=2, rho_nominal=-1 feasible-correlation row")
+    feasible_corr = float(feasible_row.iloc[0]["corr_feasible"])
     rhos = sorted(d["rho"].unique())
     modes = sorted(d["mode"].unique())
     p(f"\nn=2 shared-pool: rhos={rhos}  modes={modes}  sigmas={sorted(d['sigma'].unique())}  "
       f"reps/cond={d.groupby(['mode','rho','sigma']).size().min()}-"
       f"{d.groupby(['mode','rho','sigma']).size().max()}")
+    p(f"scope: latent target rho=-1; feasible-optimum corr={feasible_corr:+.4f}; "
+      "n=2 introduces an agent-count confound; non-detection is not equivalence")
 
     p("\n--- normalized gap dR/sigma vs rho (pooled over sigma) ---")
     p("  mode :  " + "  ".join(f"{r:+.2f}" for r in rhos))
@@ -211,7 +222,7 @@ def experiment2():
     head = []
     for m in modes:
         p("\n" + "=" * 72)
-        p(f"[{m.upper()}]  HEADLINE: genuine opposition (rho=-1) vs indifference (rho=0)")
+        p(f"[{m.upper()}]  HEADLINE: latent-target rho=-1 vs indifference (rho=0)")
         p("=" * 72)
         sub = d[d["mode"] == m]
         g_opp = sub[sub["rho"] == -1.0]["gap_norm"]
@@ -235,15 +246,15 @@ def experiment2():
         p(f"  worst rho = {worst:+.2f}   best rho = {best:+.2f}")
 
         if w_opp['diff'] > 0 and w_opp['p'] < 0.05:
-            verdict = ("opposition LOSES to indifference (rho=-1 gap significantly "
-                       "HIGHER) -> monotone: opposition is worst, confirms the n=4 finding "
-                       "at genuine unconfounded rho=-1.")
+            verdict = ("pooled Welch detects a HIGHER mean gap at latent-target rho=-1; "
+                       "no opposition advantage is detected. This is not a clean n=4 "
+                       "confirmation: feasible corr is attenuated and agent count changes.")
         elif w_opp['diff'] < 0 and w_opp['p'] < 0.05:
-            verdict = ("opposition BEATS indifference (rho=-1 gap significantly LOWER) "
-                       "-> a REAL U-shape / adversarial-helps effect at genuine rho=-1.")
+            verdict = ("pooled Welch detects a LOWER mean gap at latent-target rho=-1; "
+                       "interpret only within n=2 and feasible-correlation qualifications.")
         else:
-            verdict = ("opposition TIES indifference (no significant difference at rho=-1) "
-                       "-> opposition ~ indifference; only alignment helps.")
+            verdict = ("NO DETECTED DIFFERENCE at latent-target rho=-1; this is a "
+                       "non-detection, not equivalence, and feasible corr is attenuated.")
         p(f"  => VERDICT [{m.upper()}]: {verdict}")
         head.append(dict(experiment="n2_strong_opposition", mode=m,
                          gap_opp=w_opp['mean_a'], gap_indiff=w_opp['mean_b'],
@@ -252,7 +263,12 @@ def experiment2():
                          opp_ci_hi=w_opp['ci_hi'], opp_t=w_opp['t'], opp_p=w_opp['p'],
                          opp_mwu_p=w_opp['mwu_p'], opp_dof=w_opp['dof'],
                          coop_minus_indiff=w_coop['diff'], coop_p=w_coop['p'],
-                         worst_rho=worst, best_rho=best, verdict=verdict))
+                         worst_rho=worst, best_rho=best,
+                         latent_target_rho=-1.0,
+                         feasible_optimum_corr=feasible_corr,
+                         agent_count_confounded=True,
+                         equivalence_tested=False,
+                         verdict=verdict))
     pd.DataFrame(head).to_csv(HERE / "exp2_n2_headline.csv", index=False)
 
     # plot
@@ -265,10 +281,11 @@ def experiment2():
         ax.errorbar(mean.index, mean.values, yerr=1.96 * sem.values, marker="o",
                     capsize=3, lw=2, label=m.upper(), color=col.get(m))
     ax.axvline(0, color="grey", ls=":", lw=1, label="rho=0 (indifference)")
-    ax.axvline(-1.0, color="k", ls="--", lw=0.8, alpha=0.6, label="rho=-1 (full opposition)")
-    ax.set_xlabel(r"$\rho$ (cross-agent preference corr; n=2, unconfounded)")
+    ax.axvline(-1.0, color="k", ls="--", lw=0.8, alpha=0.6,
+               label="latent target rho=-1")
+    ax.set_xlabel(r"latent target $\rho$ (n=2; feasible $\rho=-1$ corr $=-0.468$)")
     ax.set_ylabel(r"normalized reward gap $\Delta R/\sigma$")
-    ax.set_title("Exp2: n=2 shared pool -- genuine strong opposition (rho reaches -1)")
+    ax.set_title("Exp2: n=2 latent-target opposition (feasible corr at -1 = -0.468)")
     ax.grid(alpha=0.3); ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(HERE / "exp2_n2_gap_vs_rho.png", dpi=150, bbox_inches="tight")

@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "friction-marl: A Multi-Agent Reinforcement Learning Test of Friction Dynamics"
+title: "friction-marl: A Control Battery for Mixed-Motive Multi-Agent Reinforcement Learning"
 message: "If you use this software, please cite it as below."
 type: software
 authors:
@@ -7,7 +7,7 @@ authors:
     given-names: Murad
     orcid: "https://orcid.org/0009-0002-7164-8704"
     email: murad@dissensus.ai
-repository-code: "https://github.com/studiofarzulla/friction-marl"
+repository-code: "https://github.com/dissensus-ai/friction-marl"
 license: MIT
 keywords:
   - multi-agent reinforcement learning
@@ -16,6 +16,11 @@ keywords:
   - coordination games
   - replicator dynamics
 references:
+  - type: article
+    title: "Four Ways to Manufacture a Coordination Finding: A Control Battery for Mixed-Motive MARL"
+    authors:
+      - family-names: Farzulla
+        given-names: Murad
   - type: article
     title: "The Replicator-Optimization Mechanism: A Scale-Relative Formalism for Persistence-Conditioned Dynamics"
     authors:

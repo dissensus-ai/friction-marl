@@ -106,7 +106,7 @@ def _run_one_replication(spec: JobSpec) -> Tuple[dict, np.ndarray, str, np.ndarr
     policy_history = [[] for _ in range(n_agents)]
 
     # Track rewards: only store per-window means for learning curves
-    n_windows = n_episodes // LEARNING_CURVE_WINDOW
+    n_windows = (n_episodes + LEARNING_CURVE_WINDOW - 1) // LEARNING_CURVE_WINDOW
     learning_curve = np.zeros(n_windows, dtype=np.float32)
     window_accumulator = 0.0
     window_count = 0
@@ -189,6 +189,11 @@ def _run_one_replication(spec: JobSpec) -> Tuple[dict, np.ndarray, str, np.ndarr
                 policy_vec = agent.policy_vector(probe_states)
                 policy_history[i].append(policy_vec)
 
+    # Preserve a final partial learning-curve window for smoke tests and for any
+    # protocol whose episode count is not divisible by LEARNING_CURVE_WINDOW.
+    if window_count:
+        learning_curve[n_windows - 1] = window_accumulator / window_count
+
     # Compute replication-level metrics
     convergence_times = [compute_convergence_time(hist) for hist in policy_history]
     convergence_times_scaled = [ct * POLICY_SAMPLE_INTERVAL for ct in convergence_times]
@@ -219,8 +224,11 @@ def run_parallel_factorial(
     seed: int,
     output_dir: Path,
     n_workers: int | None = None,
+    alphas: list[float] | None = None,
+    sigmas: list[float] | None = None,
     epsilons: list[float] | None = None,
     zero_bias: bool = False,
+    seed_grid_replications: int | None = None,
 ):
     if n_workers is None:
         # Each worker uses 1 torch thread, so we can use most CPU threads
@@ -231,10 +239,22 @@ def run_parallel_factorial(
     policy_path = output_dir / "policy_vectors.npz"
     learning_curves_path = output_dir / "learning_curves.npz"
 
-    conditions = generate_conditions()
-    if epsilons is not None:
-        conditions = [c for c in conditions if c.epsilon in epsilons]
+    all_conditions = generate_conditions()
+    conditions = [
+        cond
+        for cond in all_conditions
+        if (alphas is None or cond.alpha in alphas)
+        and (sigmas is None or cond.sigma in sigmas)
+        and (epsilons is None or cond.epsilon in epsilons)
+    ]
+    if not conditions:
+        raise ValueError("The requested factor filters select no conditions")
     action_map = build_action_map(n_resources)
+
+    if seed_grid_replications is not None and seed_grid_replications < n_replications:
+        raise ValueError(
+            "--seed-grid-replications must be at least --n-replications"
+        )
 
     # Load completed replications
     completed = set()
@@ -256,12 +276,24 @@ def run_parallel_factorial(
         data = np.load(learning_curves_path, allow_pickle=True)
         learning_curves = {k: data[k] for k in data.files}
 
-    # Pre-compute all seeds deterministically
+    # Pre-compute all seeds deterministically.  Ordinarily, a restricted run
+    # receives its own compact seed schedule.  For a staged diagnostic against
+    # an existing full factorial, seed_grid_replications instead consumes the
+    # original full condition x replication schedule and selects only the
+    # requested cells/reps.  This keeps the diagnostic paired to the archived
+    # run even when --epsilons or an interim replication count is used.
     master_rng = np.random.default_rng(seed)
     job_specs = []
-    for cond in conditions:
-        for rep in range(n_replications):
+    schedule_conditions = all_conditions if seed_grid_replications is not None else conditions
+    schedule_replications = seed_grid_replications or n_replications
+    selected_conditions = {(c.alpha, c.sigma, c.epsilon) for c in conditions}
+    for cond in schedule_conditions:
+        for rep in range(schedule_replications):
             rep_seed = int(master_rng.integers(0, 2**63 - 1))
+            if (cond.alpha, cond.sigma, cond.epsilon) not in selected_conditions:
+                continue
+            if rep >= n_replications:
+                continue
             if (cond.alpha, cond.sigma, cond.epsilon, rep) in completed:
                 continue
             job_specs.append(
@@ -292,6 +324,11 @@ def run_parallel_factorial(
     print(f"Already completed: {completed_count}")
     print(f"Remaining: {len(job_specs)}")
     print(f"Workers: {n_workers}")
+    if seed_grid_replications is not None:
+        print(
+            "Seed schedule: full 5x5x5 grid x "
+            f"{seed_grid_replications} replications (matched subset)"
+        )
     print(f"Policy sample interval: {POLICY_SAMPLE_INTERVAL}")
     print(f"Learning curve window: {LEARNING_CURVE_WINDOW}")
     print()
@@ -388,13 +425,26 @@ def parse_args():
     parser.add_argument("--n-agents", type=int, default=4)
     parser.add_argument("--n-resources", type=int, default=3)
     parser.add_argument("--n-replications", type=int, default=30)
-    parser.add_argument("--n-episodes", type=int, default=10000)
+    parser.add_argument("--n-episodes", type=int, default=1000)
     parser.add_argument("--output-dir", type=str, default="./results/full_factorial")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--alphas", type=float, nargs="+", default=None,
+                        help="Restrict the grid to these alpha levels")
+    parser.add_argument("--sigmas", type=float, nargs="+", default=None,
+                        help="Restrict the grid to these sigma levels")
     parser.add_argument("--epsilons", type=float, nargs="+", default=None,
                        help="Restrict the grid to these epsilon levels")
     parser.add_argument("--zero-bias", action="store_true",
                        help="Zero-initialize network biases to match run_gpu.py")
+    parser.add_argument(
+        "--seed-grid-replications",
+        type=int,
+        default=None,
+        help=(
+            "Consume the full 5x5x5 seed schedule at this replication count, "
+            "then select the requested subset (for matched staged diagnostics)"
+        ),
+    )
     parser.add_argument("--workers", type=int, default=None,
                        help="Number of parallel workers (default: CPU count - 2)")
     return parser.parse_args()
@@ -411,6 +461,9 @@ if __name__ == "__main__":
         seed=args.seed,
         output_dir=Path(args.output_dir),
         n_workers=args.workers,
+        alphas=args.alphas,
+        sigmas=args.sigmas,
         epsilons=args.epsilons,
         zero_bias=args.zero_bias,
+        seed_grid_replications=args.seed_grid_replications,
     )

@@ -13,12 +13,18 @@ monotone in sigma*(1+eps), so cells sharing a value of sigma*(1+eps) share F --
 and the broken axis is never crossed. Any outcome difference between them is a
 difference the composite cannot express, on data section 4.3 does not disown.
 
+Because this produces 25 within-alpha tie-set tests, the output reports the raw
+p-values together with Holm family-wise and Benjamini-Hochberg false-discovery-
+rate adjustments. The adjusted counts, rather than the raw count alone, are the
+robustness summary used in the manuscript.
+
 Run:  python3 results/iso_f_fan/within_alpha.py
 """
 from pathlib import Path
 
 import pandas as pd
 from scipy import stats
+from statsmodels.stats.multitest import multipletests
 
 REPO = Path(__file__).resolve().parents[2]
 DATA = REPO / "results/gpu_factorial_postfix/replication_results.csv"
@@ -43,12 +49,22 @@ def main():
                          "F": round(float(F), 3), "p": float(p),
                          "eta_sq": round(float(ss_b / ((g.gap - grand) ** 2).sum()), 4)})
 
-    r = pd.DataFrame(rows).sort_values(["alpha", "sigma(1+eps)"])
+    r = pd.DataFrame(rows).sort_values(["alpha", "sigma(1+eps)"]).reset_index(drop=True)
+    reject_holm, p_holm, _, _ = multipletests(r["p"], alpha=0.05, method="holm")
+    reject_bh, p_bh, _, _ = multipletests(r["p"], alpha=0.05, method="fdr_bh")
+    r["p_holm"] = p_holm
+    r["p_bh"] = p_bh
+    r["reject_holm_05"] = reject_holm
+    r["reject_bh_05"] = reject_bh
+    r = r[["alpha", "sigma(1+eps)", "n_cells", "F", "p", "p_holm", "p_bh",
+           "reject_holm_05", "reject_bh_05", "eta_sq"]]
     out = Path(__file__).resolve().parent / "within_alpha.csv"
     r.to_csv(out, index=False)
     print(r.to_string(index=False))
     print(f"\ntie sets: {len(r)} across {r.alpha.nunique()} alpha levels")
-    print(f"significant at .05: {(r.p < .05).sum()}/{len(r)}")
+    print(f"raw p < .05: {(r.p < .05).sum()}/{len(r)}")
+    print(f"Holm FWER < .05: {r.reject_holm_05.sum()}/{len(r)}")
+    print(f"BH FDR < .05: {r.reject_bh_05.sum()}/{len(r)}")
     print(f"min p: {r.p.min():.3g}   median eta^2: {r.eta_sq.median():.3f}   "
           f"max eta^2: {r.eta_sq.max():.3f}")
     print(f"\n-> {out}")

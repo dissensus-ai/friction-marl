@@ -12,13 +12,12 @@ decentralized execution (each agent still acts by argmax of its OWN Q).
 
 We ALSO add MAPPO (Yu et al. 2022): an on-policy actor-critic with per-agent
 categorical policies and a CENTRALIZED critic V(s) over the shared state, trained
-with GAE(lambda) on the team return and PPO-clip. Same env, reward, preference
-sampling, obs-noise convention and per-condition seeds as the off-policy branch, so
-any difference in the alpha-shape is attributable to the algorithm alone.
+with GAE(lambda) on the team return and PPO-clip. Environment, preference sampling,
+observation-noise convention and condition-seed schedule match the off-policy branch.
+The training objective does not: IQL uses individual rewards, whereas VDN and MAPPO
+use team return. Mode differences therefore compare learner/objective bundles.
 
-The runner supports --mode {iql,vdn,mappo}. EVERYTHING ELSE is identical (env, reward,
-preference sampling, network, per-condition seeds), so any difference in the
-alpha-shape is attributable to the algorithm alone. IQL-mode here reproduces the
+The runner supports --mode {iql,vdn,mappo}. IQL-mode here reproduces the
 original independent-learner result as a matched control.
 
 Targeted design (not the full 125x30): alpha sweep x {low, mid, high} stakes, eps=0.
@@ -26,6 +25,7 @@ Targeted design (not the full 125x30): alpha sweep x {low, mid, high} stakes, ep
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import time
 from dataclasses import dataclass
@@ -40,7 +40,15 @@ from friction_marl.experiments.factorial_design import (
     build_action_map,
     sample_agent_params,
 )
+from friction_marl.utils.dynamic_oracle import shared_pool_oracle_components
 from friction_marl.utils.metrics import compute_convergence_time
+
+
+def problem_instance_hash(weights: np.ndarray, targets: np.ndarray) -> str:
+    """Stable digest of the exact float32 preference instance given to one run."""
+    payload = np.asarray(weights, dtype="<f4").tobytes(order="C")
+    payload += np.asarray(targets, dtype="<f4").tobytes(order="C")
+    return hashlib.sha256(payload).hexdigest()
 
 # --- hyperparameters: identical to run_gpu.py ---
 N_AGENTS = 4
@@ -164,7 +172,8 @@ def _run_condition_offpolicy(alpha, sigma, cond_eps, mode, n_reps, n_episodes, d
     action_map_delta = action_map_gpu.float()
     probe = probe_gpu.unsqueeze(0).expand(N, -1, -1)
 
-    last100 = torch.zeros(R, 100, A, device=device)
+    n_tail = min(100, n_episodes)
+    last100 = torch.zeros(R, n_tail, A, device=device)
     policy_history = [[[] for _ in range(A)] for _ in range(R)]
     global_step = 0
     can_train = False
@@ -255,8 +264,8 @@ def _run_condition_offpolicy(alpha, sigma, cond_eps, mode, n_reps, n_episodes, d
                 optimizer.step()
                 target_net.soft_update_from(q_net, TAU)
 
-        if ep >= n_episodes - 100:
-            last100[:, ep - (n_episodes - 100)] = ep_rewards / EPISODE_LENGTH
+        if ep >= n_episodes - n_tail:
+            last100[:, ep - (n_episodes - n_tail)] = ep_rewards / EPISODE_LENGTH
 
         if ep % POLICY_SAMPLE_INTERVAL == 0 or ep == n_episodes - 1:
             with torch.no_grad():
@@ -269,6 +278,16 @@ def _run_condition_offpolicy(alpha, sigma, cond_eps, mode, n_reps, n_episodes, d
                     policy_history[r][ag].append(dist)
 
     # --- frozen held-out eval (additive; no optimizer.step / buf.push / soft_update) ---
+    # NumPy generates the reset bank so the exact same starts can be reconstructed
+    # offline and passed to the finite-horizon dynamic oracle.  This also makes the
+    # held-out protocol device-independent when IQL/VDN are split across GPUs.
+    eval_seed = int(seed + 1_000_003)
+    eval_rng = np.random.default_rng(eval_seed)
+    eval_initial_np = eval_rng.uniform(
+        0.0, CAPACITY, size=(n_eval_episodes, R, N_RESOURCES)
+    ).astype(np.float32)
+    eval_initial = torch.tensor(eval_initial_np, device=device)
+
     def _reset(gen):
         return torch.rand(R, N_RESOURCES, device=device, generator=gen) * CAPACITY
 
@@ -280,9 +299,26 @@ def _run_condition_offpolicy(alpha, sigma, cond_eps, mode, n_reps, n_episodes, d
         d = ns.unsqueeze(1) - targets_t
         return ns, (weights_t * -(d ** 2)).sum(dim=2)
 
-    eval_rew = evaluate_frozen(q_net, _reset, _observe, _step, action_map_delta,
-                               R, A, obs_dim, act_dim, device, seed + 1_000_003,
-                               n_eval_episodes, eval_eps)  # (R,A)
+    eval_clean = evaluate_frozen(
+        q_net, _reset, _observe, _step, action_map_delta,
+        R, A, obs_dim, act_dim, device, eval_seed,
+        n_eval_episodes, 0.0, initial_states=eval_initial,
+    )
+    eval_matched = evaluate_frozen(
+        q_net, _reset, _observe, _step, action_map_delta,
+        R, A, obs_dim, act_dim, device, eval_seed + 1,
+        n_eval_episodes, cond_eps, initial_states=eval_initial,
+    )
+    eval_explore = evaluate_frozen(
+        q_net, _reset, _observe, _step, action_map_delta,
+        R, A, obs_dim, act_dim, device, eval_seed + 2,
+        n_eval_episodes, cond_eps, initial_states=eval_initial,
+        action_epsilon=EPS_END,
+    )
+    oracle = shared_pool_oracle_components(
+        weights_np, targets_np, eval_initial_np,
+        horizon=EPISODE_LENGTH, capacity=int(CAPACITY),
+    )
 
     last100_cpu = last100.cpu().numpy()
     rows = []
@@ -296,10 +332,33 @@ def _run_condition_offpolicy(alpha, sigma, cond_eps, mode, n_reps, n_episodes, d
             **{f"agent_{i}_reward": float(last_rew[i]) for i in range(A)},
             "mean_reward": float(last_rew.mean()),
             "convergence_time": float(np.mean(conv)),
-            # eval_reward is the unambiguous name; eval_gap (its negation) is kept for
-            # backward compatibility with committed CSVs. See results/DATA_DICTIONARY.md.
-            "eval_reward": float(eval_rew[r].mean()),
-            "eval_gap": float(-eval_rew[r].mean()),
+            # Keep the legacy aliases, but make the evaluation condition explicit.
+            "eval_reward": float(eval_clean[r].mean()),
+            "eval_gap": float(-eval_clean[r].mean()),
+            "eval_reward_clean": float(eval_clean[r].mean()),
+            "eval_reward_matched": float(eval_matched[r].mean()),
+            "eval_reward_explore_001": float(eval_explore[r].mean()),
+            "eval_seed": eval_seed,
+            "condition_seed": int(seed),
+            "problem_instance_sha256": problem_instance_hash(weights_np[r], targets_np[r]),
+            "n_eval_episodes": n_eval_episodes,
+            "oracle_reward_continuous_static": float(oracle["continuous_static"][r]),
+            "oracle_reward_reachable_static": float(oracle["reachable_static"][r]),
+            "oracle_reward_dynamic_T100": float(oracle["dynamic_oracle"][r]),
+            "oracle_quantization_cost": float(oracle["quantization_cost"][r]),
+            "oracle_transient_cost": float(oracle["transient_cost"][r]),
+            "policy_residual_clean": float(
+                oracle["dynamic_oracle"][r] - eval_clean[r].mean()
+            ),
+            "observation_noise_cost": float(
+                eval_clean[r].mean() - eval_matched[r].mean()
+            ),
+            "exploration_cost_001": float(
+                eval_matched[r].mean() - eval_explore[r].mean()
+            ),
+            "training_window_minus_frozen_explore": float(
+                last_rew.mean() - eval_explore[r].mean()
+            ),
         })
     return rows
 
@@ -341,22 +400,28 @@ def compute_gae(rewards, values, dones, gamma, lam, last_value):
 
 def evaluate_frozen(net, reset_fn, observe_fn, step_fn, action_map_delta,
                     R, A, obs_dim, act_dim, device, eval_seed,
-                    n_eval_episodes=100, eval_eps=0.0):
+                    n_eval_episodes=100, eval_eps=0.0, *, initial_states=None,
+                    action_epsilon=0.0):
     """Frozen greedy rollout on HELD-OUT initial states.
 
-    No optimizer.step / buf.push / soft_update. eps forced to 0 (pure argmax on the
-    same BatchedQNet that both the Q-learners and the MAPPO actor expose). Obs-noise
-    is OFF by default; eval_eps>0 re-injects N(0, eval_eps*I) (std=sqrt(eval_eps)) for
-    a noisy-eval probe. A separate seeded RNG draws the held-out initial states, so
-    the eval distribution never overlaps the training resets. Returns per-rep mean
-    eval reward, shape (R, A).
+    No optimizer.step / buf.push / soft_update. Actions are greedy unless
+    ``action_epsilon`` requests a frozen epsilon-greedy diagnostic. Observation noise
+    is off by default; ``eval_eps>0`` re-injects N(0, eval_eps*I).  ``initial_states``
+    optionally supplies a device-independent held-out reset bank with shape (E,R,...)
+    so a dynamic oracle can be scored on precisely the same starts. Returns per-rep
+    mean evaluation reward, shape (R,A).
     """
     N = R * A
     gen = torch.Generator(device=device)
     gen.manual_seed(int(eval_seed))
+    if n_eval_episodes <= 0:
+        return np.full((R, A), np.nan)
+    if initial_states is not None and len(initial_states) != n_eval_episodes:
+        raise ValueError("initial_states episode count does not match n_eval_episodes")
     total = torch.zeros(R, A, device=device)
-    for _ in range(n_eval_episodes):
-        states = reset_fn(gen)
+    for episode in range(n_eval_episodes):
+        states = (initial_states[episode].clone()
+                  if initial_states is not None else reset_fn(gen))
         ep = torch.zeros(R, A, device=device)
         for _t in range(EPISODE_LENGTH):
             obs = observe_fn(states)  # (R,A,M)
@@ -367,6 +432,12 @@ def evaluate_frozen(net, reset_fn, observe_fn, step_fn, action_map_delta,
             with torch.no_grad():
                 q = net.forward(obs_flat.unsqueeze(1)).squeeze(1)  # (N, act)
             act = q.argmax(dim=1)
+            if action_epsilon > 0:
+                random_mask = torch.rand(N, device=device, generator=gen) < action_epsilon
+                random_action = torch.randint(
+                    0, act_dim, (N,), device=device, generator=gen
+                )
+                act = torch.where(random_mask, random_action, act)
             deltas = action_map_delta[act].reshape(R, A, N_RESOURCES)
             states, rewards = step_fn(states, deltas)
             ep += rewards
@@ -390,7 +461,8 @@ def _mappo_train(actor, critic, optimizer, train_reset_fn, eval_reset_fn, observ
     """
     N = R * A
     T = cfg.rollout_len
-    last100 = torch.zeros(R, 100, A, device=device)
+    n_tail = min(100, n_episodes)
+    last100 = torch.zeros(R, n_tail, A, device=device)
     policy_history = [[[] for _ in range(A)] for _ in range(R)]
 
     for ep in range(n_episodes):
@@ -446,9 +518,8 @@ def _mappo_train(actor, critic, optimizer, train_reset_fn, eval_reset_fn, observ
             # Normalise WITHIN each replication, over its own T timesteps only, so that
             # replication r's policy gradient depends solely on r's own returns.
             # A global reduction over the flattened (T, R*A) tensor rescales every seed
-            # by the other seeds' statistics, which couples the replications and voids
-            # the independence the paper's inference rests on (main.tex: "30 genuinely
-            # independent seeds per condition; this is not a pseudoreplicated design").
+            # by the other replications' statistics and adds avoidable cross-block
+            # dependence. Keep normalization within each replication instead.
             # adv is (T, R); reducing over dim=0 keeps each replication separate.
             adv = (adv - adv.mean(dim=0, keepdim=True)) / (adv.std(dim=0, keepdim=True) + 1e-8)
         adv_N = adv.unsqueeze(2).expand(T, R, A).reshape(T, N)
@@ -476,8 +547,8 @@ def _mappo_train(actor, critic, optimizer, train_reset_fn, eval_reset_fn, observ
             loss.backward()
             optimizer.step()
 
-        if ep >= n_episodes - 100:
-            last100[:, ep - (n_episodes - 100)] = ep_rewards / EPISODE_LENGTH
+        if ep >= n_episodes - n_tail:
+            last100[:, ep - (n_episodes - n_tail)] = ep_rewards / EPISODE_LENGTH
 
         if ep % POLICY_SAMPLE_INTERVAL == 0 or ep == n_episodes - 1:
             with torch.no_grad():
@@ -515,8 +586,9 @@ def run_condition_mappo(alpha, sigma, cond_eps, n_reps, n_episodes, device, seed
                         action_map_gpu, probe_gpu, n_eval_episodes=100, eval_eps=0.0):
     """MAPPO on the SHARED-POOL main env. Actor = BatchedQNet (obs -> 27 logits,
     Categorical); centralized critic = BatchedQNet(n=R, obs_dim=M, out_dim=1) over the
-    shared state s (R, M). Matched seeds + SAME sample_agent_params draw order as the
-    off-policy branch => preferences/inits are byte-identical across modes.
+    shared state s (R, M). Matched condition seeds and the same sample_agent_params
+    draw order align preference draws across modes; this is not an algorithm-only
+    comparison because the learner and training objective change together.
     """
     rng = np.random.default_rng(seed)
     torch.manual_seed(seed)

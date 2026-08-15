@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
+from statsmodels.stats.multitest import multipletests
 
 HERE = Path(__file__).resolve().parent
 
@@ -110,8 +111,8 @@ def main():
             verdict = ("MONOTONE: cooperative best, adversarial WORST; opposition does "
                        "NOT beat indifference (adversarial is even worse).")
         else:
-            verdict = ("FLAT between neutral & adversarial (no significant difference)."
-                       )
+            verdict = ("NO DIFFERENCE DETECTED between neutral and adversarial; "
+                       "this is not an equivalence result.")
         p(f"    => {verdict}")
         head_rows.append({"tag": args.tag, "mode": m, "worst_rho": worst_rho,
                           "best_rho": best_rho, "gap_neutral": g0.mean(),
@@ -120,6 +121,76 @@ def main():
                           "neutral_minus_coop": g0.mean()-gcoop.mean(), "p_coop": p_coop,
                           "verdict": verdict})
     pd.DataFrame(head_rows).to_csv(HERE / f"headline_{args.tag}.csv", index=False)
+
+    # The pooled opposition contrast is an average over the experiment's equal
+    # sigma={0.6,1.0} mixture.  Report the conditional estimands as well: the two
+    # point estimates have opposite signs, so a pooled non-detection alone is not
+    # an adequate description.  HC3 interactions test heterogeneity; the four
+    # within-stake Welch contrasts form one explicitly corrected exploratory family.
+    p("\n" + "=" * 84)
+    p("### STAKES-CONDITIONAL SIGNED EFFECTS (exploratory) ###")
+    p("=" * 84)
+    conditional_rows = []
+    interaction_rows = []
+    for m in modes:
+        sub = df[df["mode"] == m].copy()
+        full = ols("gap_norm ~ rho * C(sigma)", data=sub).fit(cov_type="HC3")
+        full_term = next(k for k in full.params.index if k.startswith("rho:C(sigma)"))
+        interaction_rows.append({
+            "mode": m,
+            "test": "full_grid_continuous_rho_x_sigma_HC3",
+            "term": full_term,
+            "estimate": full.params[full_term],
+            "ci_low": full.conf_int().loc[full_term, 0],
+            "ci_high": full.conf_int().loc[full_term, 1],
+            "p": full.pvalues[full_term],
+        })
+
+        extreme = min(r for r in rhos if r < 0)
+        endpoint = sub[sub["rho"].isin([extreme, 0.0])].copy()
+        endpoint["opposition"] = (endpoint["rho"] < 0).astype(int)
+        did = ols("gap_norm ~ opposition * C(sigma)", data=endpoint).fit(cov_type="HC3")
+        did_term = next(k for k in did.params.index if k.startswith("opposition:C(sigma)"))
+        interaction_rows.append({
+            "mode": m,
+            "test": "endpoint_opposition_x_sigma_HC3",
+            "term": did_term,
+            "estimate": did.params[did_term],
+            "ci_low": did.conf_int().loc[did_term, 0],
+            "ci_high": did.conf_int().loc[did_term, 1],
+            "p": did.pvalues[did_term],
+        })
+        p(f"\n  [{m.upper()}] full-grid rho x sigma: beta={full.params[full_term]:+.3f}, "
+          f"HC3 p={full.pvalues[full_term]:.3f}; endpoint opposition x sigma: "
+          f"beta={did.params[did_term]:+.3f}, HC3 p={did.pvalues[did_term]:.3f}")
+
+        for s in sigmas:
+            a = endpoint[(endpoint["sigma"] == s) & (endpoint["opposition"] == 1)]["gap_norm"]
+            b = endpoint[(endpoint["sigma"] == s) & (endpoint["opposition"] == 0)]["gap_norm"]
+            t_stat, p_raw = stats.ttest_ind(a, b, equal_var=False)
+            conditional_rows.append({
+                "mode": m,
+                "sigma": s,
+                "contrast": "opposition_minus_indifference",
+                "difference": a.mean() - b.mean(),
+                "t_welch": t_stat,
+                "p_raw": p_raw,
+                "n_opposition": len(a),
+                "n_indifference": len(b),
+            })
+
+    p_raw = [row["p_raw"] for row in conditional_rows]
+    p_holm = multipletests(p_raw, method="holm")[1]
+    for row, adjusted in zip(conditional_rows, p_holm):
+        row["p_holm_family4"] = adjusted
+        p(f"  {row['mode'].upper()} sigma={row['sigma']:.1f}: opposition - indifference "
+          f"={row['difference']:+.3f}, Welch p={row['p_raw']:.3f}, "
+          f"Holm p={adjusted:.3f}")
+
+    pd.DataFrame(interaction_rows).to_csv(
+        HERE / f"stake_interaction_{args.tag}.csv", index=False)
+    pd.DataFrame(conditional_rows).to_csv(
+        HERE / f"stake_conditional_contrasts_{args.tag}.csv", index=False)
 
     # ---- (4) eta^2 + sign test ----
     p("\n" + "=" * 84)

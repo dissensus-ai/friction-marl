@@ -1,11 +1,11 @@
 [project]
 name = "friction-marl"
 version = "0.1.0"
-description = "Multi-Agent RL simulation for coordination friction experiments"
+description = "Control-battery experiments for mixed-motive multi-agent reinforcement learning"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-authors = [{name = "Resurrexi"}]
+authors = [{name = "Murad Farzulla", email = "murad@dissensus.ai"}]
 dependencies = [
   "torch",
   "gymnasium",

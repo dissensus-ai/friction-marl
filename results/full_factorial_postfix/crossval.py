@@ -32,6 +32,11 @@ inert at eps = 0, so the eps = 0 stratum is a clean single-defect counterfactual
 for the decoder -- and there the repair does not zero the offset, it overshoots.
 `epsilon_strata` reports this rather than hiding it in a grid mean.
 
+EQUIVALENCE. The post-fix grid-mean offset is paired by factorial condition. The
+script therefore reports a paired one-sample TOST and its corresponding 90% CI
+at both the prespecified +/-0.10 margin and the stricter +/-0.05 margin. The
+machine-readable output is `crossval_equivalence.csv`.
+
 Run:  python3 results/full_factorial_postfix/crossval.py
 """
 import sys
@@ -150,6 +155,44 @@ def epsilon_strata(m):
         print(f"one-way ANOVA over eps, {lab:4}-fix residual: F={f.statistic:.2f} p={f.pvalue:.4f}")
 
 
+def paired_tost(d, margin, alpha=0.05):
+    """Paired one-sample TOST for mean(d) inside (-margin, +margin).
+
+    At alpha=.05, equivalence is established when both one-sided tests reject;
+    this is identical to the 90% CI lying wholly inside the equivalence bounds.
+    """
+    d = np.asarray(d, dtype=float)
+    n = len(d)
+    mean = float(d.mean())
+    se = float(stats.sem(d))
+    df = n - 1
+    ci_lo, ci_hi = stats.t.interval(1 - 2 * alpha, df, loc=mean, scale=se)
+    lower_t = (mean + margin) / se   # H0: mean <= -margin
+    upper_t = (mean - margin) / se   # H0: mean >= +margin
+    lower_p = float(stats.t.sf(lower_t, df))
+    upper_p = float(stats.t.cdf(upper_t, df))
+    tost_p = max(lower_p, upper_p)
+    return dict(
+        margin=float(margin), n=n, mean_offset=mean, se=se,
+        ci_level=1 - 2 * alpha, ci_lo=float(ci_lo), ci_hi=float(ci_hi),
+        lower_t=float(lower_t), lower_p=lower_p,
+        upper_t=float(upper_t), upper_p=upper_p,
+        tost_p=tost_p, equivalent_at_05=bool(tost_p < alpha),
+    )
+
+
+def equivalence_table(d):
+    rows = pd.DataFrame([paired_tost(d, margin) for margin in (0.10, 0.05)])
+    ci = rows.iloc[0]
+    print(f"\npaired offset: {ci.mean_offset:+.6f}; "
+          f"90% CI [{ci.ci_lo:+.6f}, {ci.ci_hi:+.6f}]")
+    print(f"{'margin':>8}{'lower p':>12}{'upper p':>12}{'TOST p':>12}{'equivalent':>13}")
+    for row in rows.itertuples(index=False):
+        print(f"{row.margin:8.2f}{row.lower_p:12.4g}{row.upper_p:12.4g}"
+              f"{row.tost_p:12.4g}{str(row.equivalent_at_05):>13}")
+    return rows
+
+
 def main():
     m = load()
     print(f"matched conditions: {len(m)}\n")
@@ -158,6 +201,7 @@ def main():
     epsilon_strata(m)
 
     d = m.cpu_new - m.gpu_new
+    equivalence = equivalence_table(d)
     lo, hi = d.mean() - 1.96 * d.std(), d.mean() + 1.96 * d.std()
     print(f"\nnew arm Bland-Altman: bias {d.mean():+.3f}, limits [{lo:.3f}, {hi:.3f}], "
           f"{100 * ((d > lo) & (d < hi)).mean():.1f}% inside (nominal 95%)")
@@ -166,7 +210,9 @@ def main():
 
     out = REPO / "results/full_factorial_postfix/crossval_conditions.csv"
     m.to_csv(out, index=False)
-    print(f"\n-> {out}")
+    equivalence_out = REPO / "results/full_factorial_postfix/crossval_equivalence.csv"
+    equivalence.to_csv(equivalence_out, index=False)
+    print(f"\n-> {out}\n-> {equivalence_out}")
 
 
 if __name__ == "__main__":

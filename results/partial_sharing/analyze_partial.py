@@ -8,30 +8,35 @@ Pipeline:
   1. SANITY GATE -- the NEW runner's own endpoints (w=0, w=1) must reproduce the
      PRE-EXISTING reference runs (separable_*.csv at w=0, equicorr_*.csv at w=1).
      If they do not, we stop and report the discrepancy (printed verdict).
-  2. Per (mode, w): OLS slope of gap_norm vs signed rho (scipy linregress; named
-     .slope/.stderr/.pvalue/.rvalue) with analytic 95% CI -> slope-vs-w table.
+  2. Per (mode, w): OLS slope of gap_norm vs signed rho with HC3 robust
+     standard errors and 95% CI -> slope-vs-w table.
   3. TREND TESTS that the slope scales with overlap:
-       (a) Spearman(w, slope) across the 4 levels  -- monotonicity (named attrs).
-       (b) interaction OLS  gap_norm ~ rho * w (w continuous in [0,1])  -- the
-           rho:w coefficient is the mediation effect; significantly NEGATIVE means
-           contention DEGREE mediates the alignment effect (statsmodels; named
-           .params/.pvalues/.conf_int).
+       (a) Spearman(w, slope) across the 4 levels, with the exact permutation
+           p-value appropriate to n=4.
+       (b) interaction OLS  gap_norm ~ rho * w (w continuous in [0,1]), with
+           HC3 robust uncertainty -- the rho:w coefficient summarizes how the
+           slope changes with overlap.
+       (c) categorical-vs-linear surface and slope-shape tests, which separate
+           nonlinear baseline shifts from evidence for a slope threshold.
   4. Plots: gap-vs-rho colored by w (per mode) + slope-vs-w with endpoint refs.
 
-All test statistics use the NAMED scipy/statsmodels result attributes -- no
-positional tuple unpacking.
+Regression coefficients and confirmatory shape tests use HC3 robust covariance.
+Classical nested-model F tests and AIC are retained as descriptive audit outputs,
+not as the load-bearing slope-shape inference.
 """
 from __future__ import annotations
 
 import sys
+from itertools import permutations
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
+matplotlib.rcParams["pdf.fonttype"] = 42
+matplotlib.rcParams["ps.fonttype"] = 42
 import matplotlib.pyplot as plt
-from matplotlib import cm
 from scipy import stats
 import statsmodels.formula.api as smf
 
@@ -53,14 +58,22 @@ def load(*paths):
 
 
 def slope_fit(sub):
-    """OLS slope gap_norm~rho via scipy.linregress; analytic 95% CI on slope."""
-    r = stats.linregress(sub["rho"].to_numpy(float), sub["gap_norm"].to_numpy(float))
-    n = len(sub)
-    tcrit = float(stats.t.ppf(0.975, n - 2))
-    return dict(slope=float(r.slope), se=float(r.stderr), p=float(r.pvalue),
-                r2=float(r.rvalue ** 2), n=n,
-                ci_lo=float(r.slope - tcrit * r.stderr),
-                ci_hi=float(r.slope + tcrit * r.stderr))
+    """OLS slope gap_norm~rho with HC3 robust uncertainty."""
+    model = smf.ols("gap_norm ~ rho", data=sub).fit(cov_type="HC3")
+    ci = model.conf_int().loc["rho"]
+    return dict(slope=float(model.params["rho"]), se=float(model.bse["rho"]),
+                p=float(model.pvalues["rho"]), r2=float(model.rsquared), n=len(sub),
+                ci_lo=float(ci.iloc[0]), ci_hi=float(ci.iloc[1]))
+
+
+def exact_spearman(x, y):
+    """Spearman coefficient and exact two-sided permutation p-value."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    observed = float(stats.spearmanr(x, y).statistic)
+    null = [float(stats.spearmanr(x, perm).statistic) for perm in permutations(y)]
+    pvalue = sum(abs(value) >= abs(observed) - 1e-12 for value in null) / len(null)
+    return observed, float(pvalue)
 
 
 def ci_overlap(a, b):
@@ -163,45 +176,168 @@ def main():
         mono_abs = bool(np.all(np.diff(absslopes) >= -1e-9))
         mono_signed = bool(np.all(np.diff(slopes) <= 1e-9))   # slope becomes more negative
         # Spearman(w, slope): expect strong NEGATIVE (slope falls as w rises)
-        sp = stats.spearmanr(ws, slopes)
-        sp_abs = stats.spearmanr(ws, absslopes)
+        sp, sp_p = exact_spearman(ws, slopes)
+        sp_abs, sp_abs_p = exact_spearman(ws, absslopes)
         p(f"      |slope| monotonically non-decreasing in w: {mono_abs}    "
           f"(signed slope monotonically non-increasing: {mono_signed})")
-        p(f"      Spearman(w, signed slope) = {float(sp.statistic):+.3f} (p={float(sp.pvalue):.3f}); "
-          f"Spearman(w, |slope|) = {float(sp_abs.statistic):+.3f} (p={float(sp_abs.pvalue):.3f})")
+        p(f"      Exact Spearman(w, signed slope) = {sp:+.3f} (p={sp_p:.3f}); "
+          f"Spearman(w, |slope|) = {sp_abs:+.3f} (p={sp_abs_p:.3f})")
     slope_df = pd.DataFrame(slope_rows)
     slope_df.to_csv(HERE / "slope_vs_overlap.csv", index=False)
 
-    # =================== interaction OLS (mediation test) =================== #
+    # ========================= interaction OLS ========================= #
     p("\n" + "=" * 86)
-    p("INTERACTION TEST -- gap_norm ~ rho * w  (rho:w coeff = contention-degree mediation)")
+    p("INTERACTION TEST -- gap_norm ~ rho * w  (HC3; rho:w = slope change per unit overlap)")
     p("=" * 86)
     inter_rows = []
     for m in modes:
         d = part[part["mode"] == m].copy()
-        model = smf.ols("gap_norm ~ rho * w", data=d).fit()
+        model = smf.ols("gap_norm ~ rho * w", data=d).fit(cov_type="HC3")
         b_int = float(model.params["rho:w"])
+        se_int = float(model.bse["rho:w"])
         p_int = float(model.pvalues["rho:w"])
         ci = model.conf_int().loc["rho:w"]
         b_rho = float(model.params["rho"])   # slope at w=0
         p(f"\n  [{m.upper()}]  n={int(model.nobs)}")
         p(f"    slope at w=0 (coef 'rho')           = {b_rho:+.3f}")
         p(f"    rho:w interaction (slope change/Δw) = {b_int:+.3f}  "
-          f"[95% CI {float(ci[0]):+.3f}, {float(ci[1]):+.3f}]  p={p_int:.3e}")
+          f"(HC3 SE {se_int:.3f})  "
+          f"[95% CI {float(ci.iloc[0]):+.3f}, {float(ci.iloc[1]):+.3f}]  p={p_int:.3e}")
         p(f"    => implied slope at w=1             = {b_rho + b_int:+.3f}")
-        verdict = ("MEDIATES: slope becomes significantly MORE NEGATIVE as overlap rises"
+        verdict = ("SCALES: slope becomes significantly MORE NEGATIVE as overlap rises"
                    if (b_int < 0 and p_int < 0.05) else
                    "NO significant scaling of slope with overlap")
         p(f"    VERDICT [{m.upper()}]: {verdict}")
         inter_rows.append(dict(mode=m, slope_at_w0=b_rho, interaction=b_int,
-                               interaction_ci_lo=float(ci[0]), interaction_ci_hi=float(ci[1]),
-                               interaction_p=p_int, implied_slope_w1=b_rho + b_int,
+                               interaction_se=se_int,
+                               interaction_ci_lo=float(ci.iloc[0]),
+                               interaction_ci_hi=float(ci.iloc[1]),
+                               interaction_p=p_int, cov_type="HC3",
+                               implied_slope_w1=b_rho + b_int,
                                n=int(model.nobs), verdict=verdict))
     pd.DataFrame(inter_rows).to_csv(HERE / "interaction_test.csv", index=False)
 
+    # ============ categorical surface and slope-shape tests ============ #
+    p("\n" + "=" * 86)
+    p("SHAPE TESTS -- does the four-level slope depart from a linear ramp?")
+    p("=" * 86)
+    shape_rows = []
+    for m in modes:
+        d = part[part["mode"] == m].copy()
+        linear = smf.ols("gap_norm ~ rho * w", data=d).fit()
+        categorical_intercepts = smf.ols(
+            "gap_norm ~ C(w) + rho + rho:w", data=d
+        ).fit()
+        categorical = smf.ols("gap_norm ~ C(w) * rho", data=d).fit()
+        categorical_hc3 = smf.ols(
+            "gap_norm ~ C(w) * rho", data=d
+        ).fit(cov_type="HC3")
+        surface_f, surface_p, surface_df = categorical.compare_f_test(linear)
+
+        slope_difference_matrix = np.zeros((3, len(categorical.params)))
+        slope_names = [f"C(w)[T.{w}]:rho" for w in ws[1:]]
+        for row, name in enumerate(slope_names):
+            slope_difference_matrix[row, list(categorical.params.index).index(name)] = 1.0
+        slope_difference = categorical.f_test(slope_difference_matrix)
+        slope_difference_hc3 = categorical_hc3.f_test(slope_difference_matrix)
+
+        # Under a linear ramp in w, categorical slope deviations from w=0 obey
+        # d(2/3)=2*d(1/3) and d(1)=3*d(1/3). Test those restrictions with HC3.
+        slope_ramp_matrix = np.zeros((2, len(categorical.params)))
+        slope_indices = [list(categorical.params.index).index(name) for name in slope_names]
+        slope_ramp_matrix[0, slope_indices[0]] = 2.0
+        slope_ramp_matrix[0, slope_indices[1]] = -1.0
+        slope_ramp_matrix[1, slope_indices[0]] = 3.0
+        slope_ramp_matrix[1, slope_indices[2]] = -1.0
+        slope_ramp_hc3 = categorical_hc3.f_test(slope_ramp_matrix)
+
+        # Apply the same linear-ramp restrictions to the categorical intercepts.
+        intercept_names = [f"C(w)[T.{w}]" for w in ws[1:]]
+        intercept_indices = [
+            list(categorical.params.index).index(name) for name in intercept_names
+        ]
+        intercept_ramp_matrix = np.zeros((2, len(categorical.params)))
+        intercept_ramp_matrix[0, intercept_indices[0]] = 2.0
+        intercept_ramp_matrix[0, intercept_indices[1]] = -1.0
+        intercept_ramp_matrix[1, intercept_indices[0]] = 3.0
+        intercept_ramp_matrix[1, intercept_indices[2]] = -1.0
+        intercept_ramp_hc3 = categorical_hc3.f_test(intercept_ramp_matrix)
+
+        # The four restrictions together are the HC3 analogue of asking whether
+        # the categorical surface departs from the linear rho*w surface.
+        surface_ramp_matrix = np.vstack([intercept_ramp_matrix, slope_ramp_matrix])
+        surface_ramp_hc3 = categorical_hc3.f_test(surface_ramp_matrix)
+        slope_shape_f, slope_shape_p, slope_shape_df = categorical.compare_f_test(
+            categorical_intercepts
+        )
+        intercept_shape_f, intercept_shape_p, intercept_shape_df = (
+            categorical_intercepts.compare_f_test(linear)
+        )
+
+        row = dict(
+            mode=m,
+            surface_f=float(surface_f), surface_df_num=float(surface_df),
+            surface_df_den=float(categorical.df_resid), surface_p=float(surface_p),
+            surface_linear_aic=float(linear.aic), surface_categorical_aic=float(categorical.aic),
+            slope_difference_f=float(slope_difference.fvalue),
+            slope_difference_df_num=float(slope_difference.df_num),
+            slope_difference_df_den=float(slope_difference.df_denom),
+            slope_difference_p=float(slope_difference.pvalue),
+            slope_difference_hc3_f=float(slope_difference_hc3.fvalue),
+            slope_difference_hc3_df_num=float(slope_difference_hc3.df_num),
+            slope_difference_hc3_df_den=float(slope_difference_hc3.df_denom),
+            slope_difference_hc3_p=float(slope_difference_hc3.pvalue),
+            slope_shape_f=float(slope_shape_f),
+            slope_shape_df_num=float(slope_shape_df),
+            slope_shape_df_den=float(categorical.df_resid),
+            slope_shape_p=float(slope_shape_p),
+            slope_ramp_hc3_f=float(slope_ramp_hc3.fvalue),
+            slope_ramp_hc3_df_num=float(slope_ramp_hc3.df_num),
+            slope_ramp_hc3_df_den=float(slope_ramp_hc3.df_denom),
+            slope_ramp_hc3_p=float(slope_ramp_hc3.pvalue),
+            intercept_shape_f=float(intercept_shape_f),
+            intercept_shape_df_num=float(intercept_shape_df),
+            intercept_shape_df_den=float(categorical_intercepts.df_resid),
+            intercept_shape_p=float(intercept_shape_p),
+            intercept_ramp_hc3_f=float(intercept_ramp_hc3.fvalue),
+            intercept_ramp_hc3_df_num=float(intercept_ramp_hc3.df_num),
+            intercept_ramp_hc3_df_den=float(intercept_ramp_hc3.df_denom),
+            intercept_ramp_hc3_p=float(intercept_ramp_hc3.pvalue),
+            surface_ramp_hc3_f=float(surface_ramp_hc3.fvalue),
+            surface_ramp_hc3_df_num=float(surface_ramp_hc3.df_num),
+            surface_ramp_hc3_df_den=float(surface_ramp_hc3.df_denom),
+            surface_ramp_hc3_p=float(surface_ramp_hc3.pvalue),
+        )
+        shape_rows.append(row)
+        p(f"\n  [{m.upper()}] HC3 categorical slope deviations jointly zero: "
+          f"F({slope_difference_hc3.df_num:.0f},{slope_difference_hc3.df_denom:.0f})="
+          f"{float(slope_difference_hc3.fvalue):.2f}, "
+          f"p={float(slope_difference_hc3.pvalue):.3g}")
+        p(f"    HC3 slope departures from a linear ramp: "
+          f"F({slope_ramp_hc3.df_num:.0f},{slope_ramp_hc3.df_denom:.0f})="
+          f"{float(slope_ramp_hc3.fvalue):.2f}, p={float(slope_ramp_hc3.pvalue):.3g}")
+        p(f"    HC3 intercept departures from a linear ramp: "
+          f"F({intercept_ramp_hc3.df_num:.0f},{intercept_ramp_hc3.df_denom:.0f})="
+          f"{float(intercept_ramp_hc3.fvalue):.2f}, p={float(intercept_ramp_hc3.pvalue):.3g}")
+        p(f"    HC3 full-surface departures from a linear ramp: "
+          f"F({surface_ramp_hc3.df_num:.0f},{surface_ramp_hc3.df_denom:.0f})="
+          f"{float(surface_ramp_hc3.fvalue):.2f}, p={float(surface_ramp_hc3.pvalue):.3g}")
+        p("    Descriptive classical diagnostics (homoskedastic covariance):")
+        p(f"      categorical vs linear surface: "
+          f"F({surface_df:.0f},{categorical.df_resid:.0f})={surface_f:.2f}, p={surface_p:.3g}")
+        p(f"      per-w slopes differ: F({slope_difference.df_num:.0f},"
+          f"{slope_difference.df_denom:.0f})={float(slope_difference.fvalue):.2f}, "
+          f"p={float(slope_difference.pvalue):.3g}")
+        p(f"      slope departures from a linear ramp: F({slope_shape_df:.0f},"
+          f"{categorical.df_resid:.0f})={slope_shape_f:.2f}, p={slope_shape_p:.3g}")
+        p(f"      intercept departures from a linear ramp: F({intercept_shape_df:.0f},"
+          f"{categorical_intercepts.df_resid:.0f})={intercept_shape_f:.2f}, "
+          f"p={intercept_shape_p:.3g}")
+    pd.DataFrame(shape_rows).to_csv(HERE / "surface_shape_tests.csv", index=False)
+
     # ============================== PLOTS ============================== #
     # Fig 1: gap-vs-rho colored by w, one subplot per mode
-    cmap = cm.get_cmap("viridis")
+    cmap = matplotlib.colormaps["viridis"]
     fig, axes = plt.subplots(1, len(modes), figsize=(6.0 * len(modes), 4.6), sharey=False)
     if len(modes) == 1:
         axes = [axes]
@@ -249,7 +385,7 @@ def main():
     fig2.savefig(HERE / "slope_vs_overlap.pdf", bbox_inches="tight")
 
     p("\nSaved: gap_vs_rho_by_overlap.{png,pdf}, slope_vs_overlap.{png,pdf}, "
-      "slope_vs_overlap.csv, interaction_test.csv, sanity_gate.csv")
+      "slope_vs_overlap.csv, interaction_test.csv, surface_shape_tests.csv, sanity_gate.csv")
     (HERE / "ANALYSIS.txt").write_text("\n".join(OUT))
     p("Saved ANALYSIS.txt")
 

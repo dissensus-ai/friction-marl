@@ -25,12 +25,12 @@ SANITY GATE -- new runner endpoints must reproduce the pre-existing reference ru
 ======================================================================================
 
   [IQL]
-    w=0 (separable)  : my slope=-0.022 [CI -0.354,+0.310] p=8.98e-01   |  ref(separable)=-0.029 [CI -0.361,+0.304]   -> FLAT&match: True
-    w=1 (full share) : my slope=-0.741 [CI -1.176,-0.307] p=8.54e-04   |  ref(equicorr)=-0.755 [CI -1.147,-0.363]   -> SLOPED&match: True
+    w=0 (separable)  : my slope=-0.022 [CI -0.396,+0.353] p=9.09e-01   |  ref(separable)=-0.029 [CI -0.402,+0.344]   -> FLAT&match: True
+    w=1 (full share) : my slope=-0.741 [CI -1.230,-0.253] p=2.94e-03   |  ref(equicorr)=-0.755 [CI -1.200,-0.310]   -> SLOPED&match: True
 
   [VDN]
-    w=0 (separable)  : my slope=-0.066 [CI -0.404,+0.272] p=7.01e-01   |  ref(separable)=-0.053 [CI -0.395,+0.289]   -> FLAT&match: True
-    w=1 (full share) : my slope=-0.755 [CI -1.120,-0.391] p=5.51e-05   |  ref(equicorr)=-0.838 [CI -1.166,-0.510]   -> SLOPED&match: True
+    w=0 (separable)  : my slope=-0.066 [CI -0.447,+0.315] p=7.34e-01   |  ref(separable)=-0.053 [CI -0.437,+0.332]   -> FLAT&match: True
+    w=1 (full share) : my slope=-0.755 [CI -1.163,-0.348] p=2.82e-04   |  ref(equicorr)=-0.838 [CI -1.202,-0.474]   -> SLOPED&match: True
 
   GATE PASSED -> endpoints reproduce; the middle overlap levels can be trusted.
 
@@ -39,35 +39,59 @@ SLOPE of gap_norm vs rho, per overlap level w  (the headline relationship)
 ======================================================================================
 
   [IQL]   w     k   slope    se      95% CI            p        R^2
-        0.000  0  -0.022  0.169  [-0.354,+0.310]  8.98e-01  0.000
-        0.333  1  -0.210  0.199  [-0.602,+0.182]  2.94e-01  0.002
-        0.667  2  -0.602  0.180  [-0.956,-0.247]  9.18e-04  0.023
-        1.000  3  -0.741  0.221  [-1.176,-0.307]  8.54e-04  0.023
+        0.000  0  -0.022  0.191  [-0.396,+0.353]  9.09e-01  0.000
+        0.333  1  -0.210  0.226  [-0.653,+0.234]  3.54e-01  0.002
+        0.667  2  -0.602  0.205  [-1.004,-0.199]  3.37e-03  0.023
+        1.000  3  -0.741  0.249  [-1.230,-0.253]  2.94e-03  0.023
       |slope| monotonically non-decreasing in w: True    (signed slope monotonically non-increasing: True)
-      Spearman(w, signed slope) = -1.000 (p=0.000); Spearman(w, |slope|) = +1.000 (p=0.000)
+      Exact Spearman(w, signed slope) = -1.000 (p=0.083); Spearman(w, |slope|) = +1.000 (p=0.083)
 
   [VDN]   w     k   slope    se      95% CI            p        R^2
-        0.000  0  -0.066  0.172  [-0.404,+0.272]  7.01e-01  0.000
-        0.333  1  -0.244  0.193  [-0.622,+0.135]  2.06e-01  0.003
-        0.667  2  -0.614  0.164  [-0.936,-0.293]  1.97e-04  0.029
-        1.000  3  -0.755  0.186  [-1.120,-0.391]  5.51e-05  0.033
+        0.000  0  -0.066  0.195  [-0.447,+0.315]  7.34e-01  0.000
+        0.333  1  -0.244  0.219  [-0.672,+0.185]  2.66e-01  0.003
+        0.667  2  -0.614  0.183  [-0.973,-0.256]  7.81e-04  0.029
+        1.000  3  -0.755  0.208  [-1.163,-0.348]  2.82e-04  0.033
       |slope| monotonically non-decreasing in w: True    (signed slope monotonically non-increasing: True)
-      Spearman(w, signed slope) = -1.000 (p=0.000); Spearman(w, |slope|) = +1.000 (p=0.000)
+      Exact Spearman(w, signed slope) = -1.000 (p=0.083); Spearman(w, |slope|) = +1.000 (p=0.083)
 
 ======================================================================================
-INTERACTION TEST -- gap_norm ~ rho * w  (rho:w coeff = contention-degree mediation)
+INTERACTION TEST -- gap_norm ~ rho * w  (HC3; rho:w = slope change per unit overlap)
 ======================================================================================
 
   [IQL]  n=1920
     slope at w=0 (coef 'rho')           = -0.011
-    rho:w interaction (slope change/Δw) = -0.765  [95% CI -1.276, -0.254]  p=3.355e-03
+    rho:w interaction (slope change/Δw) = -0.765  (HC3 SE 0.297)  [95% CI -1.348, -0.183]  p=1.001e-02
     => implied slope at w=1             = -0.776
-    VERDICT [IQL]: MEDIATES: slope becomes significantly MORE NEGATIVE as overlap rises
+    VERDICT [IQL]: SCALES: slope becomes significantly MORE NEGATIVE as overlap rises
 
   [VDN]  n=1920
     slope at w=0 (coef 'rho')           = -0.054
-    rho:w interaction (slope change/Δw) = -0.731  [95% CI -1.203, -0.259]  p=2.403e-03
+    rho:w interaction (slope change/Δw) = -0.731  (HC3 SE 0.270)  [95% CI -1.260, -0.203]  p=6.704e-03
     => implied slope at w=1             = -0.786
-    VERDICT [VDN]: MEDIATES: slope becomes significantly MORE NEGATIVE as overlap rises
+    VERDICT [VDN]: SCALES: slope becomes significantly MORE NEGATIVE as overlap rises
 
-Saved: gap_vs_rho_by_overlap.{png,pdf}, slope_vs_overlap.{png,pdf}, slope_vs_overlap.csv, interaction_test.csv, sanity_gate.csv
+======================================================================================
+SHAPE TESTS -- does the four-level slope depart from a linear ramp?
+======================================================================================
+
+  [IQL] HC3 categorical slope deviations jointly zero: F(3,1912)=2.43, p=0.0633
+    HC3 slope departures from a linear ramp: F(2,1912)=0.12, p=0.89
+    HC3 intercept departures from a linear ramp: F(2,1912)=8.92, p=0.000139
+    HC3 full-surface departures from a linear ramp: F(4,1912)=5.19, p=0.000371
+    Descriptive classical diagnostics (homoskedastic covariance):
+      categorical vs linear surface: F(4,1912)=5.04, p=0.000482
+      per-w slopes differ: F(3,1912)=3.00, p=0.0297
+      slope departures from a linear ramp: F(2,1912)=0.15, p=0.864
+      intercept departures from a linear ramp: F(2,1914)=9.95, p=5.03e-05
+
+  [VDN] HC3 categorical slope deviations jointly zero: F(3,1912)=2.56, p=0.0533
+    HC3 slope departures from a linear ramp: F(2,1912)=0.12, p=0.887
+    HC3 intercept departures from a linear ramp: F(2,1912)=6.70, p=0.00126
+    HC3 full-surface departures from a linear ramp: F(4,1912)=3.90, p=0.00372
+    Descriptive classical diagnostics (homoskedastic covariance):
+      categorical vs linear surface: F(4,1912)=3.85, p=0.004
+      per-w slopes differ: F(3,1912)=3.19, p=0.0227
+      slope departures from a linear ramp: F(2,1912)=0.15, p=0.865
+      intercept departures from a linear ramp: F(2,1914)=7.57, p=0.000531
+
+Saved: gap_vs_rho_by_overlap.{png,pdf}, slope_vs_overlap.{png,pdf}, slope_vs_overlap.csv, interaction_test.csv, surface_shape_tests.csv, sanity_gate.csv

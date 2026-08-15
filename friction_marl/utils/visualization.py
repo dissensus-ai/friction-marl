@@ -72,14 +72,18 @@ def plot_model_comparison(regression_df: pd.DataFrame, output_dir: Path) -> None
     for metric in regression_df["target"].unique():
         subset = regression_df[regression_df["target"] == metric]
         plt.figure(figsize=(7, 4))
-        sns.barplot(data=subset, x="model", y="bic", palette="deep")
+        sns.barplot(
+            data=subset, x="model", y="bic", hue="model", palette="deep", legend=False
+        )
         plt.title(f"Model comparison (BIC) - {metric}")
         plt.tight_layout()
         plt.savefig(output_dir / f"model_comparison_bic_{metric}.png")
         plt.close()
 
         plt.figure(figsize=(7, 4))
-        sns.barplot(data=subset, x="model", y="aic", palette="muted")
+        sns.barplot(
+            data=subset, x="model", y="aic", hue="model", palette="muted", legend=False
+        )
         plt.title(f"Model comparison (AIC) - {metric}")
         plt.tight_layout()
         plt.savefig(output_dir / f"model_comparison_aic_{metric}.png")

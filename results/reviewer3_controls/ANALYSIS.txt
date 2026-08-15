@@ -62,10 +62,11 @@ Saved exp1_shared_vs_separable.png + exp1_separable_headline.csv
 
 
 ####################################################################################
-# EXPERIMENT 2 -- n=2 CLEAN STRONG-OPPOSITION (reviewer3 Critical #2)
+# EXPERIMENT 2 -- n=2 LATENT-TARGET STRONG OPPOSITION (reviewer3 Critical #2)
 ####################################################################################
 
 n=2 shared-pool: rhos=[np.float64(-1.0), np.float64(-0.6), np.float64(-0.2), np.float64(0.0), np.float64(0.4), np.float64(0.8)]  modes=['iql', 'vdn']  sigmas=[np.float64(0.6), np.float64(1.0)]  reps/cond=30-30
+scope: latent target rho=-1; feasible-optimum corr=-0.4679; n=2 introduces an agent-count confound; non-detection is not equivalence
 
 --- normalized gap dR/sigma vs rho (pooled over sigma) ---
   mode :  -1.00  -0.60  -0.20  +0.00  +0.40  +0.80
@@ -73,7 +74,7 @@ n=2 shared-pool: rhos=[np.float64(-1.0), np.float64(-0.6), np.float64(-0.2), np.
   vdn  :   3.62   3.97   3.81   3.28   3.47   2.60
 
 ========================================================================
-[IQL]  HEADLINE: genuine opposition (rho=-1) vs indifference (rho=0)
+[IQL]  HEADLINE: latent-target rho=-1 vs indifference (rho=0)
 ========================================================================
   gap_norm(rho=-1, opposition)  = 5.313 (sd 4.270, n 60)
   gap_norm(rho= 0, indifference)= 4.043 (sd 2.084, n 60)
@@ -83,10 +84,10 @@ n=2 shared-pool: rhos=[np.float64(-1.0), np.float64(-0.6), np.float64(-0.2), np.
      Welch t=+2.07 (dof 86), p=4.135e-02;  Mann-Whitney p=2.408e-01
   COOPERATION - INDIFFERENCE = -1.083  [95% CI -1.823, -0.343]  Welch t=-2.90, p=4.467e-03
   worst rho = -0.60   best rho = +0.80
-  => VERDICT [IQL]: opposition LOSES to indifference (rho=-1 gap significantly HIGHER) -> monotone: opposition is worst, confirms the n=4 finding at genuine unconfounded rho=-1.
+  => VERDICT [IQL]: pooled Welch detects a HIGHER mean gap at latent-target rho=-1; no opposition advantage is detected. This is not a clean n=4 confirmation: feasible corr is attenuated and agent count changes.
 
 ========================================================================
-[VDN]  HEADLINE: genuine opposition (rho=-1) vs indifference (rho=0)
+[VDN]  HEADLINE: latent-target rho=-1 vs indifference (rho=0)
 ========================================================================
   gap_norm(rho=-1, opposition)  = 3.624 (sd 2.503, n 60)
   gap_norm(rho= 0, indifference)= 3.279 (sd 1.598, n 60)
@@ -96,6 +97,6 @@ n=2 shared-pool: rhos=[np.float64(-1.0), np.float64(-0.6), np.float64(-0.2), np.
      Welch t=+0.90 (dof 100), p=3.704e-01;  Mann-Whitney p=8.522e-01
   COOPERATION - INDIFFERENCE = -0.677  [95% CI -1.312, -0.041]  Welch t=-2.11, p=3.713e-02
   worst rho = -0.60   best rho = +0.80
-  => VERDICT [VDN]: opposition TIES indifference (no significant difference at rho=-1) -> opposition ~ indifference; only alignment helps.
+  => VERDICT [VDN]: NO DETECTED DIFFERENCE at latent-target rho=-1; this is a non-detection, not equivalence, and feasible corr is attenuated.
 
 Saved exp2_n2_gap_vs_rho.png + exp2_n2_headline.csv

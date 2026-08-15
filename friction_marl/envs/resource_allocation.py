@@ -22,7 +22,8 @@ class ResourceAllocationEnv(gym.Env):
     """Gymnasium-compatible multi-agent resource allocation environment.
 
     Observations are resource levels (continuous, non-negative).
-    Actions per agent are vectors in {-1, 0, +1}^m.
+    Gymnasium actions are encoded in {0, 1, 2}^m and decoded to semantic
+    resource deltas {-1, 0, +1}^m.
     """
 
     metadata = {"render_modes": []}

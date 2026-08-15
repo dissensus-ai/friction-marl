@@ -41,7 +41,7 @@
       "static_lattice_optimum_perstep": -0.9784237669271867,
       "transient_cost_perstep": 0.49971327799184406,
       "irreducible_Vm_sum": 2.135205505545364,
-      "seconds_3d_bi": 0.5558757781982422
+      "seconds_3d_bi": 0.2917630672454834
     },
     {
       "trial": 1,
@@ -56,7 +56,7 @@
       "static_lattice_optimum_perstep": -1.3371020287792494,
       "transient_cost_perstep": 0.6955515801815193,
       "irreducible_Vm_sum": 1.8995426999785818,
-      "seconds_3d_bi": 4.107871055603027
+      "seconds_3d_bi": 2.252485513687134
     },
     {
       "trial": 2,
@@ -71,7 +71,7 @@
       "static_lattice_optimum_perstep": -0.09579653338906755,
       "transient_cost_perstep": 0.5042072236229105,
       "irreducible_Vm_sum": 2.3281090773429787,
-      "seconds_3d_bi": 4.153146266937256
+      "seconds_3d_bi": 2.1975862979888916
     }
   ],
   "V6_naive_exact_vs_sim": [

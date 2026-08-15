@@ -82,6 +82,30 @@ def sample_agent_params_equicorr(rng, n_agents, n_resources, rho, sigma):
     return weights, targets.astype(np.float64)
 
 
+def sample_agent_params_equicorr_feasible(
+    rng, n_agents, n_resources, rho, sigma, *, capacity=10.0
+):
+    """Equicorrelated targets generated wholly inside the feasible state box.
+
+    This is a construct-validity control for the legacy ``N(0,1)`` targets, roughly
+    half of whose coordinates lie below the environment's lower bound.  We translate
+    the same unit-variance Gaussian design to the box centre and reject the vanishingly
+    rare draw outside ``[0, capacity]``.  With centre 5 and sd 1, rejection is below
+    one draw in 100,000 for the 4-agent x 3-resource condition, so the covariance is
+    effectively unchanged while every delivered ideal point is feasible.  The design
+    is translation-equivalent to centring the state box at zero.
+    """
+    L = _equicorr_sqrt(n_agents, float(rho))
+    centre = float(capacity) / 2.0
+    for _ in range(10_000):
+        z = rng.standard_normal((n_agents, n_resources))
+        targets = centre + L @ z
+        if np.all((targets >= 0.0) & (targets <= capacity)):
+            weights = _sample_weights(rng, n_agents, n_resources, sigma)
+            return weights, targets.astype(np.float64)
+    raise RuntimeError("failed to draw feasible equicorrelated targets after 10,000 attempts")
+
+
 # ----------------------------------------------------------------------------- #
 #  (B) Two-team block targets: strong opposition between teams                   #
 # ----------------------------------------------------------------------------- #

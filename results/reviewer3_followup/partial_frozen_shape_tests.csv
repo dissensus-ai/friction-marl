@@ -1,0 +1,3 @@
+target_support,mode,p_categorical_slope_modulation_cluster,df_categorical,p_departure_from_linear_ramp_cluster,df_ramp_departure,n,n_problem_blocks
+legacy-gaussian0,iql,3.5546536376695638e-06,3,0.8900268450934459,2,1920,480
+legacy-gaussian0,vdn,3.1395506067566556e-16,3,0.19082711653090592,2,1920,480

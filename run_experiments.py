@@ -1,4 +1,9 @@
-"""CLI entry point for running friction MARL experiments."""
+"""Reference CPU entry point for the original sign-blind IQL factorial.
+
+This is a portable baseline/smoke-test runner.  It is not the generator for the
+paper's post-fix GPU results or signed control battery; those commands live in
+the corresponding ``results/*/FINDINGS.md`` files.
+"""
 
 from __future__ import annotations
 
@@ -17,13 +22,18 @@ from friction_marl.utils.visualization import (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run friction MARL experiments")
+    parser = argparse.ArgumentParser(
+        description="Run the reference CPU sign-blind IQL factorial"
+    )
     parser.add_argument("--n-agents", type=int, default=4)
     parser.add_argument("--n-resources", type=int, default=3)
     parser.add_argument("--n-replications", type=int, default=30)
-    parser.add_argument("--n-episodes", type=int, default=10000)
+    parser.add_argument("--n-episodes", type=int, default=1000)
     parser.add_argument("--output-dir", type=str, default="./results")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--alphas", type=float, nargs="+", default=None)
+    parser.add_argument("--sigmas", type=float, nargs="+", default=None)
+    parser.add_argument("--epsilons", type=float, nargs="+", default=None)
     return parser.parse_args()
 
 
@@ -38,6 +48,9 @@ def main() -> None:
         n_episodes=args.n_episodes,
         seed=args.seed,
         output_dir=output_dir,
+        alphas=args.alphas,
+        sigmas=args.sigmas,
+        epsilons=args.epsilons,
     )
 
     policy_path = output_dir / "policy_vectors.npz"

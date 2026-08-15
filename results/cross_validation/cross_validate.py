@@ -5,7 +5,7 @@ Compares 65 overlapping conditions (alpha in {-0.8, -0.4, 0.0}) across both runs
 
 IMPORTANT CONTEXT:
 - GPU ran 1,000 episodes per replication (run_gpu.py default)
-- CPU ran 10,000 episodes per replication (run_parallel.py default)
+- CPU ran 10,000 episodes per replication (the historical runner default at the time)
 - This 10x difference in training budget means raw reward levels will differ
 - The key validation question is whether RELATIVE condition ordering is preserved
 """
@@ -468,7 +468,7 @@ This report compares the GPU-vectorized (`run_gpu.py`) and CPU-parallel (`run_pa
 of the 5x5x5 MARL friction factorial experiment. Both use IQL agents with friction-modulated payoff matrices.
 
 **Key difference identified:** The GPU implementation ran **1,000 episodes** per replication (default in `run_gpu.py:371`),
-while the CPU ran **10,000 episodes** (default in `run_parallel.py:363`). This 10x difference in training budget
+while the CPU ran **10,000 episodes** (the historical default when that run was produced). This 10x difference in training budget
 produces a systematic offset in absolute reward levels. The critical validation question is therefore whether the
 **relative ordering** and **effect structure** are preserved despite the training budget mismatch.
 

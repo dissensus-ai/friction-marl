@@ -20,13 +20,19 @@ are the four marked env-dynamics lines:
   * diff = own next-state - own target       (vs shared next-state - own target)
 Everything else -- network, optimizer, hyperparameters, eps schedule, replay
 buffer, per-condition seeds, IQL/VDN losses, policy probe -- is IMPORTED VERBATIM
-from b_vdn_runner so any shape difference is attributable to the env coupling alone.
+from b_vdn_runner. For IQL, each marginal problem is rho-invariant once state and
+reward interaction are removed, so the expected slope is flat by construction.
+VDN retains additive team-reward coupling in the training loss, so its finite-run
+flatness remains an empirical check. This endpoint is not sufficient evidence that
+physical contention is the unique mechanism.
 
 Matched-seed property is preserved (cond_seeds drawn from the master RNG in fixed
 (rho x sigma) order, independent of mode), so IQL on one GPU and VDN on another use
-identical preference draws & inits and are mergeable.
+matched preference draws and are mergeable. The archived CSVs predate deterministic
+PyTorch seeding, so they do not establish identical network initializations.
 
-Output CSV uses a `rho` column (signed control) + `env='separable'`.
+Output uses a `rho` column and records frozen clean/matched-noise/exploration
+evaluations, condition/evaluation seeds, target support, and instance hashes.
 """
 from __future__ import annotations
 
@@ -45,12 +51,16 @@ REPO = HERE.parent.parent
 sys.path.insert(0, str(REPO))
 
 import results.review_upgrade.b_vdn_runner as vr  # noqa: E402
-from results.adversarial_rerun.dgp import sample_agent_params_equicorr  # noqa: E402
+from results.adversarial_rerun.dgp import (  # noqa: E402
+    sample_agent_params_equicorr,
+    sample_agent_params_equicorr_feasible,
+)
 from friction_marl.experiments.factorial_design import build_action_map  # noqa: E402
 
 # import the EXACT machinery / hyperparameters used by the shared-pool runner
 from results.review_upgrade.b_vdn_runner import (  # noqa: E402
     BatchedQNet, JointReplayBuffer,
+    problem_instance_hash,
     MAPPOConfig, _mappo_train, evaluate_frozen,
     N_AGENTS, N_RESOURCES, HIDDEN_DIM, LR, GAMMA,
     EPS_START, EPS_END, EPS_DECAY, BUFFER_CAPACITY, BATCH_SIZE, TAU,
@@ -104,7 +114,8 @@ def run_condition_separable(sampler, rho, sigma, cond_eps, mode, n_reps, n_episo
     action_map_delta = action_map_gpu.float()
     probe = probe_gpu.unsqueeze(0).expand(N, -1, -1)
 
-    last100 = torch.zeros(R, 100, A, device=device)
+    n_tail = min(100, n_episodes)
+    last100 = torch.zeros(R, n_tail, A, device=device)
     policy_history = [[[] for _ in range(A)] for _ in range(R)]
     global_step = 0
     can_train = False
@@ -119,7 +130,8 @@ def run_condition_separable(sampler, rho, sigma, cond_eps, mode, n_reps, n_episo
             # ENV-DIFF 2: each agent observes its OWN pool (already (R,A,M))
             obs_all = states
             if cond_eps > 0:
-                noise = torch.randn(R, A, N_RESOURCES, device=device, generator=noise_gen) * cond_eps
+                noise = (torch.randn(R, A, N_RESOURCES, device=device, generator=noise_gen)
+                         * (cond_eps ** 0.5))
                 obs_in = obs_all + noise
             else:
                 obs_in = obs_all
@@ -141,7 +153,13 @@ def run_condition_separable(sampler, rho, sigma, cond_eps, mode, n_reps, n_episo
             diff = new_states - targets_t                        # (R, A, M)
             rewards = (weights_t * -(diff ** 2)).sum(dim=2)       # (R, A)
 
-            nobs = new_states                                     # each agent's OWN next obs
+            if cond_eps > 0:
+                nobs = new_states + (
+                    torch.randn(R, A, N_RESOURCES, device=device, generator=noise_gen)
+                    * (cond_eps ** 0.5)
+                )
+            else:
+                nobs = new_states                                 # each agent's OWN next obs
             done_val = 1.0 if step == EPISODE_LENGTH - 1 else 0.0
 
             buf.push(obs_in, act_idx.reshape(R, A), rewards,
@@ -188,8 +206,8 @@ def run_condition_separable(sampler, rho, sigma, cond_eps, mode, n_reps, n_episo
                 optimizer.step()
                 target_net.soft_update_from(q_net, TAU)
 
-        if ep >= n_episodes - 100:
-            last100[:, ep - (n_episodes - 100)] = ep_rewards / EPISODE_LENGTH
+        if ep >= n_episodes - n_tail:
+            last100[:, ep - (n_episodes - n_tail)] = ep_rewards / EPISODE_LENGTH
 
         if ep % POLICY_SAMPLE_INTERVAL == 0 or ep == n_episodes - 1:
             with torch.no_grad():
@@ -202,6 +220,13 @@ def run_condition_separable(sampler, rho, sigma, cond_eps, mode, n_reps, n_episo
                     policy_history[r][ag].append(dist)
 
     # --- frozen held-out eval (additive; no optimizer.step / buf.push / soft_update) ---
+    eval_seed = int(seed + 1_000_003)
+    eval_rng = np.random.default_rng(eval_seed)
+    eval_initial_np = eval_rng.uniform(
+        0.0, CAPACITY, size=(n_eval_episodes, R, A, N_RESOURCES)
+    ).astype(np.float32)
+    eval_initial = torch.tensor(eval_initial_np, device=device)
+
     def _reset(gen):
         return torch.rand(R, A, N_RESOURCES, device=device, generator=gen) * CAPACITY
 
@@ -213,9 +238,22 @@ def run_condition_separable(sampler, rho, sigma, cond_eps, mode, n_reps, n_episo
         d = ns - targets_t
         return ns, (weights_t * -(d ** 2)).sum(dim=2)
 
-    eval_rew = evaluate_frozen(q_net, _reset, _observe, _step, action_map_delta,
-                               R, A, obs_dim, act_dim, device, seed + 1_000_003,
-                               n_eval_episodes, eval_eps)  # (R,A)
+    eval_clean = evaluate_frozen(
+        q_net, _reset, _observe, _step, action_map_delta,
+        R, A, obs_dim, act_dim, device, eval_seed,
+        n_eval_episodes, 0.0, initial_states=eval_initial,
+    )
+    eval_matched = evaluate_frozen(
+        q_net, _reset, _observe, _step, action_map_delta,
+        R, A, obs_dim, act_dim, device, eval_seed + 1,
+        n_eval_episodes, cond_eps, initial_states=eval_initial,
+    )
+    eval_explore = evaluate_frozen(
+        q_net, _reset, _observe, _step, action_map_delta,
+        R, A, obs_dim, act_dim, device, eval_seed + 2,
+        n_eval_episodes, cond_eps, initial_states=eval_initial,
+        action_epsilon=EPS_END,
+    )
 
     last100_cpu = last100.cpu().numpy()
     rows = []
@@ -229,7 +267,20 @@ def run_condition_separable(sampler, rho, sigma, cond_eps, mode, n_reps, n_episo
             **{f"agent_{i}_reward": float(last_rew[i]) for i in range(A)},
             "mean_reward": float(last_rew.mean()),
             "convergence_time": float(np.mean(conv)),
-            "eval_gap": float(-eval_rew[r].mean()),
+            "eval_reward": float(eval_clean[r].mean()),
+            "eval_gap": float(-eval_clean[r].mean()),
+            "eval_reward_clean": float(eval_clean[r].mean()),
+            "eval_reward_matched": float(eval_matched[r].mean()),
+            "eval_reward_explore_001": float(eval_explore[r].mean()),
+            "eval_seed": eval_seed,
+            "condition_seed": int(seed),
+            "problem_instance_sha256": problem_instance_hash(weights_np[r], targets_np[r]),
+            "n_eval_episodes": n_eval_episodes,
+            "observation_noise_cost": float(eval_clean[r].mean() - eval_matched[r].mean()),
+            "exploration_cost_001": float(eval_matched[r].mean() - eval_explore[r].mean()),
+            "training_window_minus_frozen_explore": float(
+                last_rew.mean() - eval_explore[r].mean()
+            ),
         })
     return rows
 
@@ -311,6 +362,11 @@ def main():
     ap.add_argument("--epsilon", type=float, default=0.0)
     ap.add_argument("--n-reps", type=int, default=30)
     ap.add_argument("--n-episodes", type=int, default=1000)
+    ap.add_argument("--n-eval-episodes", type=int, default=100)
+    ap.add_argument(
+        "--target-support", choices=["legacy-gaussian0", "feasible-centered"],
+        default="legacy-gaussian0",
+    )
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--device", type=str, default="0")
     ap.add_argument("--out", type=str, required=True)
@@ -334,6 +390,10 @@ def main():
 
     all_rows: List[dict] = []
     out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    sampler = (sample_agent_params_equicorr_feasible
+               if args.target_support == "feasible-centered"
+               else sample_agent_params_equicorr)
     t0 = time.time()
     total = len(args.modes) * len(cond_keys)
     done = 0
@@ -344,9 +404,12 @@ def main():
         for (rho, s) in cond_keys:
             tc = time.time()
             rows = run_condition_separable(
-                sample_agent_params_equicorr, rho, s, args.epsilon, mode,
+                sampler, rho, s, args.epsilon, mode,
                 args.n_reps, args.n_episodes, device, cond_seeds[(rho, s)],
-                action_map_gpu, probe_gpu)
+                action_map_gpu, probe_gpu,
+                n_eval_episodes=args.n_eval_episodes, eval_eps=args.epsilon)
+            for row in rows:
+                row["target_support"] = args.target_support
             all_rows.extend(rows)
             done += 1
             pd.DataFrame(all_rows).to_csv(out_path, index=False)

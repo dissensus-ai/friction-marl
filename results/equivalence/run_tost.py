@@ -1,9 +1,12 @@
-"""Bound the epsilon null: TOST equivalence on the post-fix factorial.
+"""Bound the detected epsilon effect: TOST equivalence on the post-fix factorial.
 
 The paper currently hedges "failure to detect, not equivalence" (main.tex:1370,:1780)
 and its TOST module was dead code. This driver puts a number on the hedge: for the
-frozen held-out clean-eval DV, how large an epsilon effect (eps=0 vs eps=1.0, the
+frozen held-out clean-eval DV, how large the epsilon effect (eps=0 vs eps=1.0, the
 full manipulation range) can be RULED OUT, per (alpha, sigma) cell and pooled?
+
+The epsilon cells are independent condition streams, so the analysis uses Welch
+independent-sample TOST rather than a paired test.
 
 Margin anchor: the sigma main effect on the same DV at eps=0 (pooled mean at
 sigma=1.0 minus at sigma=0.2) -- the design's own largest effect. TOST at margins

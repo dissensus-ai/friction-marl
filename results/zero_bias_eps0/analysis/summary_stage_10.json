@@ -1,0 +1,25 @@
+{
+  "stage_replications_per_condition": 10,
+  "n_conditions": 25,
+  "outcome": "mean_reward_higher_is_better",
+  "equivalence_margin": 0.1,
+  "bootstrap_conditions": 50000,
+  "zero_bias_cpu_minus_gpu": {
+    "estimate": -0.08175929328799246,
+    "ci95": [
+      -0.1723036271137496,
+      0.008201179625342305
+    ]
+  },
+  "zero_bias_minus_default_cpu_paired": {
+    "estimate": 0.019044729888439166,
+    "ci95": [
+      0.0011619781777262633,
+      0.03678259748667475
+    ]
+  },
+  "matched_default_cpu_minus_gpu": -0.10080402317643168,
+  "moved_toward_gpu": true,
+  "moved_wrong_way": false,
+  "decision": "extend"
+}

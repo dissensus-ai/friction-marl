@@ -37,7 +37,7 @@ modes=['iql', 'vdn']  rhos=[np.float64(-0.33), np.float64(-0.2), np.float64(-0.1
     gap_norm(rho=+0.80,cooperative) = 3.309 (sd 2.244)
     neutral - adversarial = +0.154  (Welch t=+0.52, p=6.04e-01; MWU p=4.97e-01)
     neutral - cooperative = +0.707  (Welch t=+2.00, p=4.83e-02)
-    => FLAT between neutral & adversarial (no significant difference).
+    => NO DIFFERENCE DETECTED between neutral and adversarial; this is not an equivalence result.
 
   [VDN]  worst rho = -0.10   best rho = +0.80
     gap_norm(rho=0,neutral)      = 3.355 (sd 1.382, n 60)
@@ -45,7 +45,19 @@ modes=['iql', 'vdn']  rhos=[np.float64(-0.33), np.float64(-0.2), np.float64(-0.1
     gap_norm(rho=+0.80,cooperative) = 2.431 (sd 1.759)
     neutral - adversarial = +0.159  (Welch t=+0.62, p=5.37e-01; MWU p=4.64e-01)
     neutral - cooperative = +0.924  (Welch t=+3.20, p=1.78e-03)
-    => FLAT between neutral & adversarial (no significant difference).
+    => NO DIFFERENCE DETECTED between neutral and adversarial; this is not an equivalence result.
+
+====================================================================================
+### STAKES-CONDITIONAL SIGNED EFFECTS (exploratory) ###
+====================================================================================
+
+  [IQL] full-grid rho x sigma: beta=-0.690, HC3 p=0.129; endpoint opposition x sigma: beta=+0.981, HC3 p=0.099
+
+  [VDN] full-grid rho x sigma: beta=-0.616, HC3 p=0.097; endpoint opposition x sigma: beta=+0.729, HC3 p=0.157
+  IQL sigma=0.6: opposition - indifference =-0.644, Welch p=0.080, Holm p=0.319
+  IQL sigma=1.0: opposition - indifference =+0.337, Welch p=0.466, Holm p=0.932
+  VDN sigma=0.6: opposition - indifference =-0.523, Welch p=0.098, Holm p=0.319
+  VDN sigma=1.0: opposition - indifference =+0.205, Welch p=0.609, Holm p=0.932
 
 ====================================================================================
 ### eta^2 (does SIGN of rho now matter, vs the old |alpha|-symmetry?) ###
