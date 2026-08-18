@@ -1,6 +1,6 @@
 # MARL Findings — Corrected Summary
 
-**Last substantive revision:** 2026-08-13 (supersedes the 2026-02-13 version of this file)
+**Last substantive revision:** 2026-08-19 (supersedes the 2026-02-13 version of this file)
 
 This file used to carry the February 2026 interpretation of the 5x5x5 factorial. That
 interpretation was overturned in June 2026 when the preference data-generating process
@@ -10,13 +10,13 @@ and documented in full, with designs, verification gates, and caveats, in:
 
 | Write-up | Contents |
 |---|---|
-| [`results/adversarial_rerun/FINDINGS.md`](results/adversarial_rerun/FINDINGS.md) | The DGP bug, the signed redesign, the monotone alignment law, the functional-form refit |
+| [`results/adversarial_rerun/FINDINGS.md`](results/adversarial_rerun/FINDINGS.md) | The DGP bug, the signed target-correlation redesign, and the functional-form refit |
 | [`results/reviewer3_controls/FINDINGS.md`](results/reviewer3_controls/FINDINGS.md) | Separable-pool control and the qualified n=2 latent-target rho=-1 opposition test |
 | [`results/partial_sharing/FINDINGS.md`](results/partial_sharing/FINDINGS.md) | Contention-degree dose-response (slope scales monotonically with the fraction of shared resources) |
 | [`results/reviewer3_followup/README.md`](results/reviewer3_followup/README.md) | Frozen held-out evaluation, feasible targets, exact dynamic oracle, and follow-up gates |
 
 **One-paragraph version:** the original sampler was sign-blind — its realized cross-agent
-preference correlation is alpha^2/(alpha^2+(1-|alpha|)^2), a function of |alpha| only and
+target-coordinate correlation is alpha^2/(alpha^2+(1-|alpha|)^2), a function of |alpha| only and
 never negative, so the "adversarial" arm never existed (alpha = +-0.8 both realize
 correlation +0.94; `results/adversarial_rerun/dgp_verification.csv`). On genuinely signed
 DGPs the gap-vs-correlation relationship is monotone: cooperation lowers the coordination
@@ -27,10 +27,11 @@ realizes only -0.468 correlation between feasible optima. Under feasible-centred
 opposition is worse than indifference at both stakes and for both learners after Holm correction.
 The consent-friction functional's single-index form
 sigma/(1+rho) is rejected against an independent-effects model (Delta-AICc 22.5 IQL / 17.7 VDN;
-[`functional_form_refit.csv`](results/adversarial_rerun/functional_form_refit.csv)). Sigma-dominance is mechanical
-(degree-1 homogeneity of the reward in the weights). The surviving alignment effect is
-bounded to shared-state contention: the fully separable IQL endpoint is structurally flat and the
-VDN endpoint is empirically flat despite team-reward coupling, while the interaction-preserving
+[`functional_form_refit.csv`](results/adversarial_rerun/functional_form_refit.csv)). Dominance of the implemented sigma reward scale is mechanical
+(degree-1 homogeneity of the reward in the weights), not independent evidence that theoretical stakes dominate. The post-control target-correlation estimate is
+bounded to shared-state contention: the fully separable IQL endpoint is structurally rho-invariant
+and the VDN endpoint has no detected rho slope despite team-reward coupling, without establishing
+equivalence, while the interaction-preserving
 partial-sharing series detects graded slope modulation. Frozen
 held-out evaluation and an exact finite-horizon oracle also withdraw the old “entirely
 feasibility” attribution: feasibility supplies about 54–63% of the feasible-centred gradient and
@@ -38,7 +39,7 @@ the residual frozen-policy component about 37–46%. In a reduced feasible-centr
 observation noise raises the mean clean frozen gap, but its penalty grows toward cooperation
 (`rho x epsilon = +1.559` IQL / `+.962` VDN), opposite the proposed ratio's cross-effect; the
 penalty is not detected in most opposed cells. All reviewer follow-ups are exploratory and
-remain local and unpublished pending a fresh release package.
+remain unpublished until a checked v3 record is actually published.
 
 ---
 
@@ -48,11 +49,12 @@ The 2026-02-13 version of this file (preserved in git history) made five headlin
 from the original factorial. Their fates:
 
 1. **"Preference structure > preference direction" (the U-shape)** — **retracted.**
-   The claim that both cooperative and adversarial alignment beat unstructured indifference
+   The claim that both cooperative and adversarial nominal alignment beat unstructured indifference
    was an artifact of the sign-blind DGP: alpha<0 conditions were in fact *positively*
    correlated, identically to alpha>0, so the design compared |correlation| levels, not
-   signed alignment. With a real signed axis the symmetry collapses (the signed-linear term
-   explains 99% IQL / 95% VDN of the rho-variance) and only alignment helps. The proposed
+   signed target-coordinate correlation. With a real signed axis the symmetry collapses (the signed-linear term
+   explains 99% IQL / 95% VDN of the rho-variance) and the positively correlated target endpoint
+   has the smaller gap. The proposed
    companion-paper framing "structured disagreement improves coordination" was withdrawn
    with it.
 

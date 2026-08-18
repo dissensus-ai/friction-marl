@@ -14,7 +14,7 @@ A four-agent resource-allocation MARL testbed for the coordination-friction func
 F = sigma * (1 + epsilon) / (1 + alpha)
 ```
 
-Agents manage shared continuous resources under Independent Q-Learning (IQL), with a value-decomposition learner (VDN) run alongside on control grids. The original design is a 5x5x5 factorial over preference alignment (alpha), preference intensity / stakes (sigma), and observation noise (epsilon) — 125 conditions x 30 replications. Later runs add a redesigned signed preference DGP and a control battery: separable and partial-sharing environments, n=2 strong opposition, frozen held-out evaluation, feasible target support, and an exact finite-horizon oracle.
+Agents manage shared continuous resources under Independent Q-Learning (IQL), with a value-decomposition learner (VDN) run alongside on control grids. The original design is a 5x5x5 factorial over a nominal preference-alignment label (alpha), an implemented reward-scale factor (sigma), and observation noise (epsilon) — 125 conditions x 30 replications. Sigma is only a proxy for theoretical stakes unless a separate calibration is supplied. Later runs add a redesigned signed preference DGP and a control battery: separable and partial-sharing environments, n=2 strong opposition, frozen held-out evaluation, feasible target support, and an exact finite-horizon oracle. In the corrected designs, rho is signed cross-agent correlation among sampled target coordinates (ideal points) inside one fixed quadratic reward family; it is not a direct measure of objective- or reward-function alignment.
 
 The suite ships the theory's own functional alongside the evidence rejecting its specific form. That is the point: the repository documents both a set of corrected findings and, as a methodological result in its own right, how the original experiment design manufactured a spurious one.
 
@@ -22,15 +22,15 @@ The suite ships the theory's own functional alongside the evidence rejecting its
 
 ### 1. The original U-shape was a data-generating-process artifact
 
-The original sampler, `target_i = alpha*base + (1-|alpha|)*noise_i`, realizes a cross-agent preference correlation of
+The original sampler, `target_i = alpha*base + (1-|alpha|)*noise_i`, realizes a cross-agent target-coordinate correlation of
 
 ```
 rho(alpha) = alpha^2 / (alpha^2 + (1-|alpha|)^2)
 ```
 
-— a function of |alpha| only, **never negative**. alpha = -0.8 and alpha = +0.8 both realize correlation +0.94 (verified in [`dgp_verification.csv`](results/adversarial_rerun/dgp_verification.csv)); the "adversarial" arm never existed. The U-shape reported from the original factorial ("both cooperative and adversarial alignment beat indifference") was a symmetry artifact of a sign-blind DGP, not a finding. This is the teachable failure the repo preserves: always verify the realized statistic your design claims to manipulate.
+— a function of |alpha| only, **never negative**. alpha = -0.8 and alpha = +0.8 both realize correlation +0.94 (verified in [`dgp_verification.csv`](results/adversarial_rerun/dgp_verification.csv)); the "adversarial" arm never existed. The U-shape reported from the original factorial ("both cooperative and adversarial nominal alignment beat indifference") was a symmetry artifact of a sign-blind DGP, not a finding. This is the teachable failure the repo preserves: always verify the realized statistic your design claims to manipulate.
 
-### 2. Signed alignment lowers the shared-state gap, conditionally on target support
+### 2. Signed target-coordinate correlation lowers the shared-state gap, conditionally on target support
 
 With cross-agent correlation rho controlled directly and genuinely signed
 ([`results/adversarial_rerun/`](results/adversarial_rerun/)), the gap-vs-rho relationship is
@@ -65,15 +65,15 @@ and both one-sided components are in
 
 Fitting competing functional forms to the signed-DGP condition means ([`functional_form_refit.csv`](results/adversarial_rerun/functional_form_refit.csv)): the friction form M1, gap ~ sigma/(1+rho), gives R^2 = 0.666 with AICc = 29.8 (IQL), while the independent-effects model M4 gives R^2 = 0.935 with AICc = 7.4. Delta-AICc(M1 - M4) is 22.5 for IQL and 17.7 for VDN. The kernel variables matter directionally, but the single-index composition F is rejected as a predictor of coordination failure.
 
-### 5. Stakes dominance is mechanical
+### 5. Reward-scale dominance is mechanical
 
-Reward is degree-1 homogeneous in the preference weights, so sigma dominates the raw gap (eta^2 = 0.22-0.24) and its effect essentially collapses after sigma-normalization (eta^2 = 0.0002-0.0004) — see [`results/adversarial_rerun/FINDINGS.md`](results/adversarial_rerun/FINDINGS.md), section 4C. The direction (higher stakes raise friction) holds, but the dominance is arithmetic, not structural. The remaining structural effect of preference correlation is real but modest (normalized eta^2 = 0.036-0.058).
+Reward is degree-1 homogeneous in the preference weights, so sigma dominates the raw gap (eta^2 = 0.22-0.24) and its effect essentially collapses after sigma-normalization (eta^2 = 0.0002-0.0004) — see [`results/adversarial_rerun/FINDINGS.md`](results/adversarial_rerun/FINDINGS.md), section 4C. Higher implemented reward scale therefore raises the raw gap mechanically; this is not independent evidence that theoretical stakes dominate coordination. The remaining effect of signed target-coordinate correlation is real but modest in this design (normalized eta^2 = 0.036-0.058).
 
-### 6. The alignment effect is bounded to shared-state contention
+### 6. The target-correlation effect is bounded to shared-state contention
 
 The control battery locates the mechanism:
 
-- **Separable pools** ([`exp1_separable_headline.csv`](results/reviewer3_controls/exp1_separable_headline.csv)): give each agent its own independent pool and the gap-vs-rho law flattens. IQL is structurally flat because agents share neither state nor reward and have rho-invariant marginal targets. VDN remains empirically flat despite retaining team-reward coupling during training. This is a negative endpoint and scope check, not unique mechanism identification.
+- **Separable pools** ([`exp1_separable_headline.csv`](results/reviewer3_controls/exp1_separable_headline.csv)): give each agent its own independent pool and the gap-vs-rho law is removed by construction for IQL because agents share neither state nor reward and have rho-invariant marginal targets. For VDN, which retains team-reward coupling during training, no rho slope is detected; equivalence is not established. This is a negative endpoint and scope check, not unique mechanism identification.
 - **Partial sharing** ([paired data](results/reviewer3_followup/partial_legacy_paired.csv), [interaction](results/reviewer3_followup/partial_frozen_interactions.csv), [shape tests](results/reviewer3_followup/partial_frozen_shape_tests.csv)): on clean frozen held-out evaluation, slopes steepen monotonically from −0.219/−0.125 at the separable endpoints to −1.156/−1.162 under full sharing (IQL/VDN). The problem-block-clustered rho-by-w interaction is −0.916 (95% CI [−1.304, −0.528], p=3.7e-6) / −1.023 ([−1.260, −0.787], p=2.0e-17). Categorical modulation is detected, while departures from a linear ramp are not (p=.890/.191). The old unpaired late-training analysis remains under `results/partial_sharing/` as provenance, not as the result of record.
 - **n=2 latent-target opposition** ([`results/reviewer3_controls/`](results/reviewer3_controls/)): the equicorrelated sampler reaches target rho=-1.0000, but the box constraint attenuates feasible-optimum correlation to -0.468 and reducing to two agents introduces an agent-count confound (finding 2 above).
 
@@ -86,8 +86,10 @@ exploration, parameter updates and reset dynamics. The follow-up freezes each po
 continuous feasibility, reachable-lattice cost, travel transient and the frozen-policy residual;
 an independent implementation passes 54/54 brute-force cases.
 
-Under legacy Gaussian-at-zero targets, the clean frozen slope is -1.156 IQL / -1.162 VDN and the
-policy residual is flat: continuous feasibility supplies more than the full gradient. With the
+Under legacy Gaussian-at-zero targets, the clean frozen slope is -1.156 IQL / -1.162 VDN. The
+dynamic-controller residual slopes are +0.136 (p=.463) IQL and +0.130 (p=.051) VDN: neither is
+detected, but equivalence is not established, and continuous feasibility supplies more than the
+point-estimated full gradient. With the
 same signed Gaussian translated to the centre of the feasible box, every target is reachable and
 the slope steepens to -3.602 / -4.210. Continuous feasibility supplies about 63% IQL / 54% VDN,
 while the residual to the exact dynamic controller supplies about 37% / 46%. Within the feasible
@@ -127,7 +129,9 @@ python run_experiments.py \
 This command is a portable smoke test of the reference CPU implementation; it is
 not a regeneration of the results of record. `requirements.txt` pins the software versions used for the reported release and documents the
 ROCm, CUDA, and CPU PyTorch installation variants. Installing only the package metadata leaves
-dependencies broad and is not the environment-of-record route.
+dependencies broad and is not the environment-of-record route. The tracked `uv.lock` captures a
+newer local verification/development environment; it is not provenance for the archived training
+runs and does not supersede `requirements.txt`.
 
 ## CLI
 
@@ -175,10 +179,10 @@ friction-marl/
 
 The public Zenodo concept DOI is [10.5281/zenodo.20636467](https://doi.org/10.5281/zenodo.20636467).
 Published v2 includes the February factorial and June control battery, but not the post-fix
-factorials or the August reviewer follow-up. Those data are currently local and unpublished. The
-archives under `release/zenodo-v3/` are an obsolete 8 August snapshot and must not be cited as the
-current package. A new archive, inventory and checksum set will be generated only after the
-follow-up analyses and manuscript are final; no Zenodo draft or public release has been created.
+factorials or the August reviewer follow-up. Those additions remain unpublished until a checked
+v3 record is published. Files under `release/zenodo-v3/` are local release-candidate artifacts,
+not a public record; their embedded source commit, inventories and `SHA256SUMS` must all be checked
+before use. The concept DOI resolves only to the latest version actually published by Zenodo.
 
 ## Related Papers
 

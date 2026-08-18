@@ -1,13 +1,14 @@
-# Partial-Sharing Control: does the alignment-gap slope scale with the DEGREE of shared-state contention?
+# Partial-Sharing Control: does the target-correlation gap slope scale with shared-state contention?
 
 **Original run:** 2026-06-27
 **Result of record updated:** 2026-08-13
-**Scope:** The mechanistic test reviewer #5 asked for. Two endpoints were already on
-disk — *fully separable* (no contention) is FLAT, *fully shared* (full contention)
-is SLOPED. This experiment parametrically varies the **degree** of shared-state
-contention between those extremes and asks whether the alignment-gap slope scales
+**Scope:** The interaction-preserving control reviewer #5 asked for. Two endpoints were already on
+disk: the fully separable IQL expectation is rho-invariant, while the VDN separable slope is not
+detected and equivalence is not established; the fully shared endpoint has a detected negative
+slope. This experiment parametrically varies the **degree** of shared-state
+contention between those extremes and asks whether the target-correlation gap slope scales
 (monotonically) with that degree. A monotone, significant trend is evidence that
-**contention degree modulates the alignment effect** (rather than the
+**contention degree modulates the target-correlation effect** (rather than the
 slope being an all-or-nothing property of "some shared state").
 **New dir:** `results/partial_sharing/` (this dir). The June control run did not
 modify the paper; the 8--10 August 2026 interpretation and robust-inference updates
@@ -57,10 +58,10 @@ is auditable. Its numerical estimates are not the current result and should not 
 
 ### Historical headline
 
-**The alignment-gap slope scales monotonically with the overlap degree, for BOTH
+**The target-correlation gap slope scales monotonically with the overlap degree, for BOTH
 learners, and the scaling is statistically significant.** As the fraction of
 resources that are common-pool (contended) rises from w=0 → 1, the slope of the
-normalized reward gap vs signed preference correlation ρ falls from ≈0 (flat) to
+normalized reward gap vs signed target-coordinate correlation ρ falls from ≈0 (flat) to
 ≈−0.75 (steep):
 
 | overlap w (k/3) | IQL slope (p) | VDN slope (p) |
@@ -153,7 +154,7 @@ PyTorch seeding and do not support a claim of identical network initializations.
 **Stats.** Per-overlap and continuous-interaction coefficients use statsmodels OLS
 with HC3 robust uncertainty (`.params/.bse/.pvalues/.conf_int`); the four-level
 Spearman p-value is the exact two-sided permutation value. HC3 Wald restrictions
-provide the confirmatory categorical slope and shape tests; classical nested F tests
+provide the exploratory categorical slope and shape tests; classical nested F tests
 and AIC are retained as descriptive audit outputs. No positional result unpacking is used.
 
 ---

@@ -1,9 +1,9 @@
 # Reviewer3 Controls: Two Targeted Re-runs on the Signed-Correlation Finding
 
 **Date:** 2026-06-27
-**Scope:** Two control experiments that settle reviewer3's two CRITICAL concerns
-about the paper's signed cross-agent-correlation finding (coordination gap =
--mean reward TRACKS signed preference correlation rho: cooperation rho>0 lowers
+**Scope:** Two control experiments that address reviewer3's two CRITICAL concerns
+about the paper's signed cross-agent target-coordinate-correlation finding (coordination gap =
+-mean reward TRACKS signed target-coordinate correlation rho: cooperation rho>0 lowers
 friction, opposition rho<0 ~ indifference rho=0). Same harness/DGP/style as the
 prior `results/adversarial_rerun/`.
 **New dir:** `results/reviewer3_controls/` (this dir). **Nothing else was modified;
@@ -14,14 +14,16 @@ the paper was not touched.** Compute: both AMD GPUs under ROCm 6.3, torch
 
 ## HEADLINE VERDICTS
 
-**Experiment 1 (separable resources, Critical #1): the signed-correlation law
-FLATTENS.** With each agent on its OWN independent resource pool, the gap-vs-rho
-curve goes flat (IQL slope -0.029, p=0.87; VDN slope -0.053, p=0.76; one-way
-ANOVA across rho n.s. for both), whereas the shared-pool law is strong and
-significant (IQL slope -0.755, p=2e-4; VDN -0.838, p=7e-7). **The friction is
-SHARED-STATE CONTENTION, not preference correlation per se. The central claim is
-therefore BOUNDED to common-pool / shared-state environments.** This is exactly
-the bound the reviewer asked us to find, and we report it plainly.
+**Experiment 1 (separable resources, Critical #1): the separable endpoint bounds the
+signed-correlation result.** With each agent on its OWN independent resource pool, IQL is
+rho-invariant by construction because agents share neither state nor reward and the marginal
+target law is fixed across rho. For VDN, which retains team-reward coupling, no rho slope is
+detected (IQL estimate -0.029, p=0.87; VDN -0.053, p=0.76); the VDN result is a
+non-detection, not equivalence. The shared-pool slopes are detected (IQL -0.755, p=2e-4;
+VDN -0.838, p=7e-7). The contrast bounds the result to this common-pool/shared-state
+environment family but does not uniquely identify contention against every other interaction
+mechanism. The later partial-sharing control supplies the more informative graded modulation
+test.
 
 **Experiment 2 (n=2 latent-target strong opposition, Critical #2 + Major #4): no
 test detects an opposition advantage.** With n=2 the single pair reaches latent-target
@@ -32,13 +34,13 @@ detected difference** from indifference for VDN
 (diff +0.35, Welch p=0.37, MWU p=0.85) and is **directionally WORSE but only
 fragilely so** for IQL (diff +1.27, Welch p=0.041 *pooled-only*; MWU p=0.24;
 per-sigma p=0.24/0.09 -- not significant within either sigma). In NO case does
-opposition beat indifference. **Cooperation robustly beats indifference in both
+opposition beat indifference. **The pooled exploratory cooperation contrast is detected in both
 learners** (IQL -1.08, p=0.004; VDN -0.68, p=0.037). These within-n=2 results are
 directionally consistent with the n=4 reading, but they neither establish equivalence
 nor remove the feasible-correlation and agent-count qualifications.
 
-Both controls **strengthen the paper's honest core** (alignment is the structural
-factor) while **bounding it** (the law lives in shared-state friction).
+Together these controls bound the archived target-correlation estimate to the studied shared-state
+environment family. They do not establish a universal law or a unique mechanism.
 
 ---
 
@@ -48,7 +50,8 @@ factor) while **bounding it** (the law lives in shared-state friction).
   equicorrelated sampler `sample_agent_params_equicorr` (per-resource targets
   ~ N(0, Sigma(rho)), Sigma(rho)=(1-rho)I+rho 11^T, eigh-based PSD sqrt, unit
   marginal target variance for every rho). Weights `w ~ N(sigma,0.05)` clipped to
-  [0,1] unchanged (sigma = preference intensity / stakes).
+  [0,1] unchanged. Sigma is the implemented reward-scale factor and only a proxy for
+  theoretical stakes absent a separate calibration.
 - **Learners:** IQL (independent) + VDN (centralized value decomposition), the
   exact `results/review_upgrade/b_vdn_runner.py` machinery (BatchedQNet,
   JointReplayBuffer, matched per-condition seeds, eps schedule, hyperparameters).
@@ -72,7 +75,7 @@ factor) while **bounding it** (the law lives in shared-state friction).
 
 ## EXPERIMENT 1 -- SEPARABLE-RESOURCE CONTROL (Critical #1)
 
-**Question.** Is the gap-tracks-rho law a property of preference correlation, or
+**Question.** Is the gap-tracks-rho relation a property of target-coordinate correlation, or
 just SHARED-STATE CONTENTION (n agents fighting over one common pool)?
 
 **Design.** A SEPARABLE variant of the env (`separable_runner.py`,
@@ -104,22 +107,20 @@ schedule/replay/seeds/IQL-VDN losses/probe are imported verbatim from
 | VDN | separable | -0.053 | 0.76 | 0.000 | 0.89 | 0.52 | -0.117 | 0.71 | -0.173 | 0.38 |
 
 - Shared-vs-separable **gap-vs-rho shape correlation = +0.22 (IQL) / +0.15 (VDN)**
-  -- the curves are essentially unrelated; the monotone alignment ramp is gone.
-- Separable raw gap is flat over rho at BOTH sigmas (sigma=0.6: ~2.2-2.6;
-  sigma=1.0: ~3.5-4.0) and scales mechanically with sigma -> the flatness is not a
-  normalization artifact.
+  -- the curves are essentially unrelated; the negative target-correlation slope is gone.
+- No separable raw-gap rho trend is detected at either sigma (sigma=0.6: ~2.2-2.6;
+  sigma=1.0: ~3.5-4.0), while the level scales mechanically with sigma. This check does
+  not turn the VDN non-detection into an equivalence result.
 - Note the separable gap sits at ~the shared *indifference* level (IQL ~3.9 vs
   shared rho=0 = 4.0); the shared run's cooperation dividend (the drop below that
   baseline) is precisely what vanishes once the pool is not shared.
 
-**VERDICT (Exp1): the signed-correlation law is driven by SHARED-STATE CONTENTION.**
-In separable resources cooperation no longer lowers the gap (and opposition no
-longer raises it): the curve is flat. **The paper's central claim must be bounded
-to common-pool / shared-state friction** -- when agents are not physically forced
-to reconcile their targets in one shared state, preference correlation has no
-detectable effect on coordination. Plot: `exp1_shared_vs_separable.png`.
-(Mechanistically intuitive: with independent pools each agent steers its own state
-to its own target regardless of what the others want; rho cannot bind.)
+**VERDICT (Exp1): the signed-correlation estimate is bounded to the studied shared-state
+environment family.** In the separable IQL construction rho cannot affect the expectation;
+for VDN no slope is detected and equivalence is not established. The binary control alone
+does not distinguish shared-state contention from every other form of interaction, which is why
+the later partial-sharing series varies physical overlap while preserving interaction. Plot:
+`exp1_shared_vs_separable.png`.
 
 ---
 
@@ -162,13 +163,15 @@ the control is qualified by feasible correlation -0.468 and the n=2 agent-count 
   neither sigma alone is significant (sigma=0.6 p=0.24, sigma=1.0 p=0.09). The
   opposition arm has a heavy right tail (sd 4.27 vs 2.08 at indifference): some
   replications coordinate badly under strong opposition, inflating the mean more
-  than the median. Honest read: **opposition <= indifference, never >.**
-- **Cooperation robustly beats indifference** for both learners (IQL p=0.0045,
-  VDN p=0.037).
+  than the median. Honest read: no opposition advantage is detected; the point estimates
+  indicate a higher gap, but the endpoint evidence is mixed rather than an ordering proof.
+- **The pooled exploratory cooperation contrast is detected** for both learners (IQL p=0.0045,
+  VDN p=0.037); these raw p-values were not part of a prespecified multiplicity family.
 - Minor wrinkle: the single worst point is rho=-0.6 (not -1) for both learners --
   the opposition arm plateaus/rises rather than peaking exactly at -1, so it is
-  "monotone-ish, opposition-region elevated" rather than strictly monotone. The
-  direction (opposition region > indifference > cooperation) is unambiguous.
+  "monotone-ish, opposition-region elevated" rather than strictly monotone. The point-estimate
+  ordering is opposition region > indifference > cooperation, with the inferential qualifications
+  above.
 
 This extends the latent target to rho=-1 without the within-team confound, but it is
 not a clean n=4 adversarial test: feasible opposition is attenuated and agent count
@@ -180,10 +183,9 @@ worse in one pooled comparison and VDN remains an unbounded non-detection. Plot:
 
 ## Limitations / honest caveats
 
-1. **Exp1 bounds the claim, by design.** The flat separable result is the correct,
-   intended outcome of the control: it tells us the friction is shared-state
-   contention. The paper should state the signed-correlation law as a property of
-   *common-pool* coordination, not of preference correlation in the abstract.
+1. **Exp1 bounds the claim, by design.** IQL is rho-invariant in the separable construction;
+   the VDN slope is not detected but equivalence is not established. The comparison motivates
+   the *common-pool* scope condition but, by itself, does not identify a unique mechanism.
 2. **Exp2 IQL significance is fragile.** The "opposition worse" effect for IQL is
    Welch-pooled-significant only (p=0.041), MWU-n.s. and per-sigma-n.s., driven by
    a heavy-tailed opposition distribution. We therefore report that no test detects
@@ -192,7 +194,8 @@ worse in one pooled comparison and VDN remains an unbounded non-detection. Plot:
    [0,capacity] and targets ~ N(0,1) (so ~half are negative and unreachable), the
    separable gap has an irreducible floor; this floor is rho-invariant (marginal
    target variance is held at 1 for every rho), which is exactly why the curve is
-   flat. The flatness is about the SHAPE over rho, not the level.
+   rho-invariant for IQL. For VDN, the absence of a detected slope concerns the SHAPE over rho,
+   not the level and not statistical equivalence.
 4. **n=2 vs n=4 absolute gaps are not directly comparable** (different agent
    counts / pool pressure); Exp2 contrasts are all WITHIN the n=2 sweep.
 5. **sigma resolution** = 2 levels (as in the prior runs); not the focus.

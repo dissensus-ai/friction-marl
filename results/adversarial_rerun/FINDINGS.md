@@ -8,31 +8,39 @@ indifference (a real U-shape) or not.
 **Outputs:** `results/adversarial_rerun/` (this dir). The prior paper-backing run in
 `results/review_upgrade/` was **not modified**.
 
+**Currency notice (2026-08-19):** this file preserves the June late-training analysis. It is
+not the current cross-protocol verdict. The pooled opposition-versus-indifference null below
+cancels opposite-signed stake-specific estimates and does not establish a tie or equivalence.
+Frozen held-out evaluation, feasible-centred targets, the exact dynamic oracle, and corrected
+within-stake contrasts are reported in `results/reviewer3_followup/README.md`; those follow-ups
+are the result of record for the paper's current claims.
+
 ---
 
-## VERDICT (headline)
+## Historical June verdict (superseded for current inference)
 
-**No. Structured opposition does NOT beat indifference.**
+**No opposition advantage was detected in these late-training runs.** This statement is not an
+equivalence claim and is not pooled into the current support-conditional verdict.
 
-- With a genuinely *signed* preference correlation, the reward gap is **monotone in rho**:
-  cooperation (rho->+1) is best, and the gap rises as rho falls. Only **alignment** beats
-  indifference.
-- Equicorrelated opposition (capped at rho = -1/3 for n=4) is **statistically tied with
-  indifference** -- there is no symmetric "adversarial arm." (IQL: neutral-adversarial
+- With a genuinely signed target-coordinate correlation, the full-grid reward-gap slope on rho is
+  negative and the cooperative endpoint has the smallest gap. The opposed endpoint comparison
+  requires the stake-specific qualifications below.
+- Equicorrelated opposition (capped at rho = -1/3 for n=4) has **no detected pooled
+  difference from indifference**; opposite-signed within-stake estimates make the pooled null
+  non-interpretable as a general tie. (IQL: neutral-adversarial
   = +0.15, p~0.60; VDN: +0.16, p~0.54.)
-- **Strong** opposition (two-team DGP, between-team corr down to -1.0) is **worse**, not
-  better, than indifference -- monotone-worsening for IQL (gap 3.43 -> 4.54 as opposition
+- **Strong** opposition in the confounded two-team DGP (between-team corr down to -1.0) is
+  directionally worse, not better, than indifference -- the IQL trend rises (gap 3.43 -> 4.54 as opposition
   strength 0->1; trend slope +0.98, p_trend = 0.048; strongest opposition is the worst
-  case), flat-but-elevated for VDN (indifference remains the lowest gap).
+  case), while the VDN trend is not detected (indifference remains the lowest point estimate).
 - The previously reported **|alpha|-symmetric U-shape ("structure of either sign helps")
   was an artifact** of the buggy shared-base DGP, in which alpha<0 was in fact *positively*
   correlated (~+0.94, identical to alpha>0). Once the sign is real, the symmetry collapses:
   the signed-linear term explains **99% (IQL) / 95% (VDN)** of the rho-variance (old design:
   0% was sign). VDN preserves this shape (curve corr 0.976) and uniformly lowers the gap.
 
-This **vindicates the honest reading** of the paper: the only thing that genuinely helps
-coordination is preference *alignment*; "opposition coordinates well" was an
-inference-of-record bug, not a real phenomenon.
+This historical pass rejected the original sign-blind U-shape. It did not establish equivalence
+at the opposed endpoint or identify a universal effect of target-coordinate correlation.
 
 ---
 
@@ -50,7 +58,8 @@ For n agents the population cross-agent correlation is
 -- a function of **|alpha| only**, always >= 0. At alpha = +-0.8, rho ~ **0.94 for both
 signs**. So alpha<0 was never adversarial: every agent shared the same base -b and stayed
 strongly *positively* correlated. The only unstructured point was alpha=0 (rho=0), which
-is why it looked "worst" -- a |alpha|-symmetry artifact, not a U over genuine alignment.
+is why it looked "worst" -- a |alpha|-symmetry artifact, not a U over genuine signed
+target-coordinate correlation.
 
 Empirically confirmed (`verify_dgp.py`, `dgp_verification.csv`):
 
@@ -82,8 +91,9 @@ shares +base, team B shares -base, strength `opp` in [0,1]. Within-team corr = +
 between-team corr = **-opp^2** (reaches -1.0 at opp=1 -> genuine strong opposition, beyond
 the equicorrelated bound). Mean pairwise = -opp^2/3.
 
-In both, weights `w ~ N(sigma, 0.05)` clipped to [0,1] are **unchanged** -- sigma keeps its
-"preference intensity / stakes" meaning. The IQL/VDN runners are reused verbatim; only
+In both, weights `w ~ N(sigma, 0.05)` clipped to [0,1] are **unchanged**. Sigma is the
+implemented reward-scale factor and only a proxy for theoretical stakes absent a separate
+calibration. The IQL/VDN runners are reused verbatim; only
 the sampler is swapped (monkeypatch).
 
 ### Verified realised correlation range (the gate)
@@ -153,12 +163,13 @@ Normalized gap dR/sigma, mean over reps (pooled over sigma):
 | **VDN** | 3.20 | 3.36 | 3.38 | 3.36 | 3.02 | 2.76 | 2.69 | **2.43** |
 
 - **Cooperative (rho=+0.8) is best** for both learners (lowest gap).
-- The curve is a **ramp / half-U**: a high plateau for rho <= 0, declining monotonically
+- The curve is a **ramp / half-U** descriptively: a high region for rho <= 0, declining monotonically
   for rho > 0. Worst point rho = **-0.10** for both (the indifference / mild-opposition
-  plateau is statistically flat).
+  region has no detected linear trend).
 - **Opposition does not beat indifference.** Neutral (rho=0) vs most-adversarial (rho=-0.33):
-  IQL +0.15 (Welch p=0.60, MWU p=0.50); VDN +0.16 (p=0.54, MWU p=0.46). Tied.
-- **Alignment does beat indifference.** Neutral vs cooperative (rho=+0.8): IQL -0.71
+  IQL +0.15 (Welch p=0.60, MWU p=0.50); VDN +0.16 (p=0.54, MWU p=0.46). These are
+  non-detections, not equivalence, and the stake-conditional estimates differ in sign.
+- **The positively correlated target endpoint has a smaller gap.** Neutral vs rho=+0.8: IQL -0.71
   (p=0.048); VDN -0.92 (p=0.0018).
 
 ### 4B. Two-team strong opposition (robustness) -- `gap_vs_opposition_team.png`
@@ -171,18 +182,17 @@ Raw gap (sigma=1.0), between-team corr = -opp^2:
 | **IQL** gap | 3.43 | 3.94 | 3.86 | 3.85 | 4.38 | **4.54** |
 | **VDN** gap | 2.84 | 3.37 | 3.14 | 3.01 | 3.22 | 3.03 |
 
-- **IQL: opposition is monotonically worst.** gap rises with opposition strength (trend
+- **IQL: the point estimates worsen with opposition.** gap rises with opposition strength (trend
   slope +0.98, p_trend = 0.048); strongest opposition (between-corr -1.0) is the worst
   case (4.54 vs indifference 3.43, delta +1.11; opp=0-vs-1 Welch p=0.08 -- marginal under
-  high sigma=1 variance, but the full-sweep trend is significant and the direction
-  unambiguous).
+  high sigma=1 variance). This exploratory trend does not remove the team-structure confound.
 - **VDN: indifference is best** (opp=0 -> 2.84, the minimum); opposition lifts the gap to
   ~3.0-3.4 but with no significant trend (slope +0.10, p=0.78) -- centralized team-reward
   training largely absorbs the conflict but never makes opposition *better* than
   indifference.
 
-Strong opposition therefore **does not** recover a U-shape; it confirms opposition <=
-indifference, and (for independent learners) strictly worse.
+Strong opposition therefore does not recover the original U-shape in this two-team design. The
+result is directional and confounded, not a proof of an ordering relative to indifference.
 
 ### 4C. eta^2 and the sign question
 
@@ -214,24 +224,25 @@ Replication-level eta^2 (gap ~ C(rho)*C(sigma)):
 - VDN **uniformly lowers** the gap vs IQL at every rho by ~0.63-0.88 (all p < 0.05); it
   does *not* selectively rescue the neutral/adversarial region and does not manufacture a
   U. Centralized value decomposition helps coordination everywhere by a roughly constant
-  amount, leaving the monotone alignment-helps shape intact.
+  amount, leaving the negative target-correlation slope intact.
 
 ---
 
 ## 5. Limitations / honest caveats
 
 1. **Equicorrelated adversarial is capped at rho = -1/3** (PSD bound for n=4). Strong
-   opposition is only reachable via the block/team structure, which is *not*
-   equicorrelated. Both designs agree (opposition <= indifference), but the cleanest
-   continuous arm cannot go past -1/3 by construction.
+   opposition is only reachable here via the block/team structure, which is *not*
+   equicorrelated and introduces within-team cooperation. The continuous arm cannot go past
+   -1/3 by construction.
 2. **Single environment** -- a shared common-pool resource (`ResourceAllocationEnv`: all
    agents' +-1 actions sum into one shared state). "Opposition hurts" is intuitive here
    because anti-correlated targets make agents physically fight over the same pool. A
-   *separable* environment (independent resource pools per agent) could behave
-   differently; the present result is specific to shared-state friction.
+   *separable* and partial-sharing controls were subsequently run; see
+   `results/reviewer3_controls/` and `results/reviewer3_followup/`. The present June result is
+   specific to this shared-state environment.
 3. **sigma resolution.** 2 sigma levels (equicorr) / 1 (team) -- sigma was not the focus
    and eta^2(sigma) is not finely resolved, but the normalization argument (sigma effect
-   is mechanical) reproduces the prior finding and is robust to that.
+   is mechanical) reproduces the prior finding under this design.
 4. **Modest effect size + variance.** eta^2(rho) ~ 0.04-0.06; per-rep gap variance at
    sigma=1 is large, so the single-pair tests (e.g. IQL opp=0 vs opp=1, p=0.08) are
    marginal. The *direction* is consistent across both DGPs, both learners, and the

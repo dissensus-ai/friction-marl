@@ -1,6 +1,6 @@
 # Reviewer3 follow-up — frozen policy, feasible support, and dynamic oracle
 
-Artifact tier: **local working evidence, unpublished**. These files answer the
+Artifact tier: **local release-candidate evidence, unpublished**. These files answer the
 13 August 2026 Reviewer3 report. They do not become part of the public replication
 record until the final source/data package is committed, independently extracted,
 checksummed, and published as a new Zenodo version.
@@ -46,13 +46,14 @@ excluded from any release inventory.
 
 ## Results of record
 
-- The clean frozen shared-state slope survives under legacy support (`-1.156` IQL; `-1.162` VDN)
+- The clean frozen shared-state slope is detected under legacy support (`-1.156` IQL; `-1.162` VDN)
   and steepens under feasible-centred support (`-3.602`; `-4.210`). The paired support changes are
   `-2.446` and `-3.049` (both Holm-adjusted `p<1e-8`).
-- Under legacy support the dynamic-controller residual slope is flat; under feasible-centred
-  support continuous feasibility supplies about 63%/54% of the cooperative gradient and the
-  residual supplies about 37%/46% (IQL/VDN). The old binary feasibility-versus-learning
-  attribution is withdrawn.
+- Under legacy support the dynamic-controller residual slopes are `+0.136` (`p=.463`) IQL and
+  `+0.130` (`p=.051`) VDN. Neither is detected, but equivalence is not established. Under
+  feasible-centred support continuous feasibility supplies about 63%/54% of the cooperative
+  gradient and the residual supplies about 37%/46% (IQL/VDN). The old binary
+  feasibility-versus-learning attribution is withdrawn.
 - Paired partial sharing gives clean frozen slopes from `-0.219/-0.125` at `w=0` to
   `-1.156/-1.162` at `w=1`. The problem-block-clustered `rho x w` interaction is `-0.916`
   (`p=3.7e-6`) IQL and `-1.023` (`p=2.0e-17`) VDN. All partially shared slopes are detected;
