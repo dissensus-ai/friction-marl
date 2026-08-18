@@ -1,0 +1,30 @@
+friction-marl Zenodo release candidate v3.0.0
+
+Source commit: 556e27cd7cdd37e320a6a2718495c94a201091fb
+Repository: https://github.com/dissensus-ai/friction-marl
+Zenodo concept DOI: 10.5281/zenodo.20636467
+Prepared locally: 2026-08-19
+Public state at preparation: unpublished release candidate; Zenodo v2 remains public
+
+Archive roles
+-------------
+- friction-marl-code-v3.0.0.tar.gz is a Git archive of the source commit above.
+  It excludes results, historical smoke outputs, and release-packaging artifacts.
+- friction-marl-data-v3.0.0.tar.gz contains the complete local results tree at the
+  source boundary, including ignored large result files needed for replication.
+
+Data exclusions
+---------------
+- every __pycache__ directory and .pyc file;
+- every path whose name contains "smoke", including implementation-diagnostic
+  output under results/reviewer3_followup/ and results/smoke_parallel/.
+
+The data archive includes the interrupted crossval_zerobias_eps0 predecessor only
+as provenance with INCOMPLETE.md. It must not be pooled with zero_bias_eps0, whose
+planned 750-run diagnostic is complete but has an inconclusive primary equivalence
+decision at the 30-replication cap.
+
+The archive inventories record path, byte size, and per-file SHA-256. SHA256SUMS
+authenticates both archives, both inventories, this file, and the validation report.
+Local preparation does not make the files public; publication requires a new version
+under the existing Zenodo concept DOI.
