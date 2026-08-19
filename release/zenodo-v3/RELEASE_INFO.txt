@@ -1,6 +1,6 @@
 friction-marl Zenodo release candidate v3.0.0
 
-Source commit: 556e27cd7cdd37e320a6a2718495c94a201091fb
+Source commit: 026594350a7821b143a5be874a0dca9a2651da4d
 Repository: https://github.com/dissensus-ai/friction-marl
 Zenodo concept DOI: 10.5281/zenodo.20636467
 Prepared locally: 2026-08-19

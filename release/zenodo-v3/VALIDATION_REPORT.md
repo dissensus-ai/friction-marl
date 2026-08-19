@@ -4,21 +4,21 @@
 publication claim. No Zenodo API call, upload, draft creation, or publication was
 performed during packaging.
 
-- Source commit: `556e27cd7cdd37e320a6a2718495c94a201091fb`
+- Source commit: `026594350a7821b143a5be874a0dca9a2651da4d`
 - Prepared and checked: 2026-08-19
 - Durable cold-extraction root:
-  `/home/purrpower/Resurrexi/projects/papers/papers-official/marl-coordination/release-qa/zenodo-v3-2026-08-19-556e27c/`
+  `/home/purrpower/Resurrexi/projects/papers/papers-official/marl-coordination/release-qa/zenodo-v3-2026-08-19-0265943/`
 - Public state during validation: Zenodo v2 remains the latest public record.
 
 ## Candidate artifacts
 
 | File | Bytes | SHA-256 |
 |---|---:|---|
-| `friction-marl-code-v3.0.0.tar.gz` | 180,893 | `f6c2afeff1aaefd4f33cb22ee20f01f1b63f53ed6110fe907ce696d091263f9f` |
-| `friction-marl-data-v3.0.0.tar.gz` | 10,702,334 | `9f881774c2b21f7f85ae07c828bf30db2022dc803970fb76114311c72a034cb5` |
-| `CODE_INVENTORY.txt` | 2,657 | `d1496830f114990e6672e9f6be2bfd3ad58993adbe88adcacff44d96ec0896cf` |
-| `DATA_INVENTORY.txt` | 55,127 | `594bd1d1c2081a10f909b68a22d48cff38a40d8a09563a1304f7dea143efd57f` |
-| `RELEASE_INFO.txt` | 1,477 | `421d6b39ea4eda857bc38e4419563c7f03312a0aa6c0d71cedd64a4e2fa60379` |
+| `friction-marl-code-v3.0.0.tar.gz` | 178,773 | `a40553b22c463a0412f8b2d2235d3a7f011ec46230e32af6ce1d894384f848b8` |
+| `friction-marl-data-v3.0.0.tar.gz` | 10,604,781 | `5a9be6c56757751a892f54fd6cc560bb1b09eeed37296cf46086d53f4ba82c8e` |
+| `CODE_INVENTORY.txt` | 2,657 | `dfe60296b0397746d9360dc9f0cbeeb0df0a2386587804c0b0a972b5db3f30d9` |
+| `DATA_INVENTORY.txt` | 55,215 | `96f8f14cdb26b08c3753f2544715d90d6ca1f24f12b860a805b505569af5887e` |
+| `RELEASE_INFO.txt` | 1,477 | `5c407e70b991e44a98c5706f33953a8841b313671cf3b867e7f1386b09a3feef` |
 
 `SHA256SUMS` authenticates the files above together with this report. Its own hash
 is reported in the external preparation ledger rather than recursively within itself.
@@ -26,51 +26,54 @@ is reported in the external preparation ledger rather than recursively within it
 ## Archive and inventory gates
 
 - Both gzip streams pass `gzip -t`.
-- Both tar streams contain only relative paths and contain no symlinks, hard links,
-  devices, or `..` traversal components.
+- Both tar streams contain only paths below their declared archive root and contain no symlinks,
+  hard links, devices, absolute paths, or `..` traversal components.
 - `git get-tar-commit-id` recovers the exact source commit from the code archive.
-- Code inventory: 26 regular files, 614,544 uncompressed bytes; every extracted
+- A second deterministic build of each archive is byte-identical to the candidate.
+- Code inventory: 26 regular files, 614,590 uncompressed bytes; every extracted
   file matches its inventory size and SHA-256.
-- Data inventory: 442 regular files, 27,259,103 uncompressed bytes, including
+- Data inventory: 443 regular files, 27,266,975 uncompressed bytes, including
   `RELEASE_INFO.txt`; every extracted file matches its inventory size and SHA-256.
-- The 441 extracted `results/` files match the live evidence closure byte for byte.
+- The 442 extracted `results/` files match the live evidence closure byte for byte.
 - No `__pycache__`, `.pyc`, or path containing `smoke` occurs in the data archive.
 - Required post-fix GPU/CPU factorials, cross-validation and equivalence tables,
   signed-DGP refits, Reviewer3 frozen/feasible/oracle/noise/partial-sharing data and
   scripts, zero-bias completion record, and interrupted-predecessor warning are present.
 
-## Cold-extraction execution gates
+## Final text-only refresh gates
 
-The pristine extraction was retained unchanged. The following were run in a second
-extraction using the repository's newer local verification environment (Python
-3.13.11), not as a claim that this was the archived training environment. The code
-README names `requirements.txt` as the training environment of record and identifies
-`uv.lock` as a newer verification/development lock.
+The full numerical cold-extraction gate was completed at source boundary
+`556e27cd7cdd37e320a6a2718495c94a201091fb` and is retained at
+`marl-coordination/release-qa/zenodo-v3-2026-08-19-556e27c/`. Relative to that
+validated extraction, the final source boundary changes only the root `README.md`,
+adds `results/README.md`, and changes 16 result-side prose, licence, LaTeX-caption,
+or Python-module-docstring files plus `RELEASE_INFO.txt`. All other code and data
+files are byte-identical. No numerical CSV, JSON, NPZ, PDF, or executable statement
+changed, so heavy numerical gates were not rerun.
 
-- Python compilation of the core package, CPU entrypoint, dynamic oracle and
-  Reviewer3 analysis/verification scripts: PASS.
-- Independent dynamic oracle: 54/54 two-step brute-force cases PASS.
-- Partial-sharing endpoint gate: IQL and VDN, `k=0 == separable` and `k=m == shared`: PASS.
-- Signed functional-form refit: PASS. Equal-condition OLS reproduces
-  `Delta AICc(M1-M4)=22.458719` IQL and `17.704074` VDN; WLS and
-  replication-row sensitivity outputs regenerate.
-- Frozen/feasible/oracle and paired partial-sharing analysis: PASS, including
-  provenance, one-to-one pairing and decomposition assertions.
-- Signed-noise analysis: PASS; clean mean penalties regenerate as 2.231679 IQL and
-  0.714208 VDN, with rho-by-noise terms 1.559084 and 0.962022.
-- Zero-bias stopping analysis: PASS at 30 replications per condition; decision
-  remains `extend`, interpreted as inconclusive at the planned maximum.
-- Repaired CPU/GPU cross-validation: PASS; paired offset -0.026070, 90% CI
-  [-0.065210, 0.013069], equivalent at +/-0.10 but not +/-0.05.
-- README quickstart: PASS and produced the documented output family. Four expected
-  `RankWarning` messages arise because a one-condition smoke cannot identify a
-  plotting regression; they do not affect execution or the archived results.
-- The 17 regenerated CSVs that differ bytewise under the newer numerical stack
-  match the canonical tables in shape, labels and values (`max_abs_delta =
-  1.22e-12`, tolerance `rtol=atol=1e-12`). The pristine checksummed copies were not
-  replaced.
-- Structured-file read gate: 156 non-empty CSVs, 20 JSON files and 8 NPZ files
-  parse successfully; all 5 PDFs pass `qpdf --check`.
+The final pristine extraction was retained unchanged. Targeted checks at the new
+source boundary found:
+
+- Python compilation of the four result scripts receiving historical-scope
+  docstrings: PASS. Their abstract syntax trees, after removing the module
+  docstrings, are identical to the previously validated versions.
+- Repository framing and data-licence wording: PASS. The archive names the work as
+  an artifact-control battery, identifies the candidate ratio as the original test
+  object, and uses the current `Dissensus` attribution.
+- Historical-provenance guard gate: PASS for all 15 deliberately retained
+  interpretive reports, generators, and LaTeX surfaces receiving immediate scope
+  warnings. The new `results/README.md` provides the archive-level authority map.
+- README cross-archive relative links: PASS.
+- Required evidence path gate: PASS for 17 post-fix, functional-form, Reviewer3,
+  zero-bias, and interrupted-predecessor records.
+
+The prior numerical gates therefore remain applicable to the byte-identical
+computational evidence: independent dynamic-oracle 54/54; partial-sharing endpoints;
+functional-form refit; frozen/feasible/oracle and paired analyses; signed noise;
+zero-bias stopping; repaired CPU/GPU cross-validation; README quickstart; structured
+files; and PDF integrity. The prior 17 regenerated CSV comparisons agreed with the
+frozen tables to `max_abs_delta = 1.212e-12` under the newer development numerical
+stack; the frozen checksummed files remain unchanged.
 
 Two one-byte CSV placeholders are intentionally empty:
 `results/reviewer3_followup/partial_target_support_interactions.csv` and

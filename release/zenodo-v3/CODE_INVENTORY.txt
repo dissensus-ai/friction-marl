@@ -1,14 +1,14 @@
 # friction-marl code archive v3.0.0
-# source_commit	556e27cd7cdd37e320a6a2718495c94a201091fb
+# source_commit	026594350a7821b143a5be874a0dca9a2651da4d
 # archive_root	friction-marl-code-v3.0.0
 # regular_files	26
-# uncompressed_bytes	614544
+# uncompressed_bytes	614590
 # columns	path	bytes	sha256
 .gitignore	646	f7a480496381f51cb45aa70ce8ffb1dfd7923b83d0ff5f52671850efbf3e6e29
 CITATION.cff	1226	8efb14911102856c348c3ad629bfcd73bf6d970ee878c8a793c7dd8ce797695e
 LICENSE	1071	c5ea11085cd90fe2066cdf41adebd5e80f296e7de7d858e454623154fcf716c1
 MARL_FINDINGS.md	6852	aa8a3d1e44f25d92adf07b08d99fcb58593df7d4bcecf704c52b72a552984a3c
-README.md	15025	d2ee347cb28419ef08d8bd7866382e36fac0e04bd02aafde9bc39f590c4a652e
+README.md	15071	73783f749db2c9b0e7b3c089b7740369e6699ff6a242fbd0fe41641e1d98f4d8
 extract_results.py	17060	f3c44ebf857d57fd66d3b4ce56523ce66adde2ba236167b612be7974ac38da4e
 friction_marl/__init__.py	198	d67bd294f33026418a3a93bf30e51b82fe480b96d43bb9f99d773616698665fa
 friction_marl/agents/__init__.py	100	5e691ddae330e5e12160b563f43bdbfeee3a546b538641a3d4b888a4498674fc
