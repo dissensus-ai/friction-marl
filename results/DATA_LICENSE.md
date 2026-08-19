@@ -7,7 +7,7 @@ licensed under the Creative Commons Attribution 4.0 International license (CC BY
 Source-code files contained alongside the data remain licensed under the repository's MIT License.
 
 Please cite the versioned Zenodo record under concept DOI
-<https://doi.org/10.5281/zenodo.20636467> and the companion manuscript:
+<https://doi.org/10.5281/zenodo.20636467> and the associated manuscript:
 
 > Murad Farzulla, *Four Ways to Manufacture a Coordination Finding: A Control Battery for
-> Mixed-Motive MARL*, Dissensus AI paper DAI-2606 (2026).
+> Mixed-Motive MARL*, Dissensus paper DAI-2606 (2026).

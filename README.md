@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-Code companion to [Axiom of Consent: Friction Dynamics in Multi-Agent Coordination](https://arxiv.org/abs/2601.06692) (DAI-2601). The empirical results here are written up in the companion manuscript *Four Ways to Manufacture a Coordination Finding: A Control Battery for Mixed-Motive MARL* (DAI-2606).
+Code and evidence repository for *Four Ways to Manufacture a Coordination Finding: A Control Battery for Mixed-Motive MARL* (DAI-2606). The study tests a candidate ratio introduced in [The Axiom of Consent](https://arxiv.org/abs/2601.06692), but the contribution of record is the methodological control battery and its empirical findings.
 
 ## Overview
 
@@ -191,7 +191,7 @@ before use. The concept DOI resolves only to the latest version actually publish
 
 ## Authors
 
-- **Murad Farzulla** -- [Dissensus AI](https://dissensus.ai)
+- **Murad Farzulla** -- [Dissensus](https://dissensus.ai)
   - ORCID: [0009-0002-7164-8704](https://orcid.org/0009-0002-7164-8704)
 
 ## License
