@@ -1,4 +1,9 @@
-"""Deliverable B analysis: does the U-shape over alpha survive centralized training?
+"""HISTORICAL GENERATOR — LEGACY SIGN-BLIND ALPHA SAMPLER.
+
+The U-shape output from this script is retained as failure provenance and is not evidence about
+genuine opposition. See results/README.md and the signed-design analyses for the current verdict.
+
+Deliverable B analysis: does the U-shape over alpha survive centralized training?
 
 Compares IQL (independent learners) vs VDN (centralized value-decomposition) on the
 matched targeted grid. Verdict logic:

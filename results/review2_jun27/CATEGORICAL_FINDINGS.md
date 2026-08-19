@@ -1,5 +1,11 @@
 # A2 — Categorical-w refit (misspecified continuous interaction) + baseline-difficulty confound
 
+> **LEGACY-SUPPORT, UNPAIRED ANALYSIS — NOT THE CURRENT PARTIAL-SHARING VERDICT.** This June pass
+> uses the original legacy-Gaussian-support runs and conventional nested-F comparisons. The current
+> paired analysis and HC3 slope-shape tests are in `results/partial_sharing/` and
+> `results/reviewer3_followup/`. In particular, do not treat the per-level significance pattern
+> below as proof of a threshold or the separable endpoint as an equivalence result.
+
 **Date:** 2026-06-27 · **Reviewer items:** Major "misspecified continuous interaction", Major "confounded difficulty in partial-sharing"
 **Data:** `results/partial_sharing/partial_{iql,vdn}.csv` (committed CSVs; no RL re-run).
 **Design:** overlap `w ∈ {0, 1/3, 2/3, 1}` (= `k/3` shared resources), signed `ρ ∈ {−0.33,−0.20,−0.10,0,0.20,0.40,0.60,0.80}`, `σ ∈ {0.6,1.0}`, 30 seeds → **n = 1920 per learner**, 30/ cell, no missing rows.

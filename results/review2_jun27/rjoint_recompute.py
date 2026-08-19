@@ -1,4 +1,11 @@
-"""Re-derive the feasibility--learning decomposition of the cooperative reward-gap
+"""HISTORICAL STATIC-BENCHMARK RECOMPUTE — SUPERSEDED FOR LEARNING ATTRIBUTION.
+
+This script exactly reproduces the retained static single-state decomposition, but its residual
+includes finite-horizon reachability/transient and evaluation costs as well as policy
+suboptimality. It cannot isolate learning friction. Use the dynamic oracle under
+results/reviewer3_followup for the current decomposition.
+
+Re-derive the feasibility--learning decomposition of the cooperative reward-gap
 decline (paper Sec. 7.8, Table `tab:rjoint-decomp`; `RJOINT_FINDINGS.md`).
 
 Provenance

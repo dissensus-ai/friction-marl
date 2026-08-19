@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """
+HISTORICAL GENERATOR — SUPERSEDED INTERPRETATION
+This script reproduces the February failure-provenance report. It is retained to audit the old
+analysis, not to generate the current cross-platform verdict. The current paired analysis lives
+under full_factorial_postfix; see results/README.md.
+
 Full Cross-Validation Analysis: GPU vs CPU MARL 5x5x5 Factorial
 ================================================================
 Both runs: 125 conditions (5 alpha x 5 sigma x 5 epsilon), 30 replications, 1000 episodes.

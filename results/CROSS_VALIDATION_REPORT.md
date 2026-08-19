@@ -1,5 +1,12 @@
 # Cross-Validation Report: GPU vs CPU MARL 5x5x5 Factorial
 
+> **HISTORICAL FAILURE-PROVENANCE ARTIFACT — SUPERSEDED.** This February report predates the
+> repaired implementations and the signed, feasible-target, frozen-policy control battery. Its
+> alpha labels do not represent delivered negative target correlation; its raw sigma conclusions
+> include degree-one reward scaling; and its U-shape, theory-confirmation, equalization, and
+> noise-irrelevance interpretations are withdrawn. Retained numbers document the original failure.
+> Use `results/README.md`, the post-fix directories, and the current paper for inference.
+
 **Date:** 2026-02-14
 **Analyst:** Automated (Claude Opus 4.6)
 **Design:** 5 x 5 x 5 factorial (alpha x sigma x epsilon), 125 conditions, 30 replications, 1000 episodes

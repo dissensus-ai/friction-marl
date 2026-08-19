@@ -1,5 +1,12 @@
 # A1 — Feasibility vs learning decomposition of the cooperative reward-gap decline
 
+> **HISTORICAL STATIC-BENCHMARK ANALYSIS — SUPERSEDED FOR LEARNING ATTRIBUTION.** The algebra and
+> retained numbers below compare achieved reward with a best single static state. The residual
+> therefore mixes dynamic reachability/transient cost, evaluation noise or exploration, and policy
+> suboptimality; it cannot establish that a change is “entirely feasibility” or isolate learning
+> friction. Use the finite-horizon dynamic-oracle decomposition in `results/reviewer3_followup/`
+> and the current paper for the bounded verdict.
+
 **Date:** 2026-06-27
 **Reviewer finding addressed (Critical):** *"confounded coordination-friction metric"* — the
 cooperative decline in the reward gap may be pure FEASIBILITY (the achievable joint

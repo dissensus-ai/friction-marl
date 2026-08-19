@@ -1,4 +1,9 @@
-"""Deliverable B: centralized value-decomposition (VDN) vs independent IQL vs MAPPO.
+"""HISTORICAL RUNNER — LEGACY SIGN-BLIND ALPHA SAMPLER.
+
+Outputs are retained as failure provenance; alpha labels here do not establish delivered negative
+target correlation or a genuine-opposition effect. See results/README.md.
+
+Deliverable B: centralized value-decomposition (VDN) vs independent IQL vs MAPPO.
 
 Tests whether the U-shape over alpha (structured preferences -- either aligned OR
 opposed -- coordinate better than unstructured alpha=0) is IQL-specific, or survives

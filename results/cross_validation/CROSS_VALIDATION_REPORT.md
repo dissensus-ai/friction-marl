@@ -1,5 +1,11 @@
 # Cross-Validation Report: GPU vs CPU MARL Factorial
 
+> **HISTORICAL FAILURE-PROVENANCE ARTIFACT — SUPERSEDED.** This report concerns the legacy
+> implementations and is not the current cross-platform validation. Its final verdict incorrectly
+> reintroduces a 10x budget explanation after the correction below states that both runs used 1,000
+> episodes. Do not use that verdict. The repaired paired analysis is in
+> `results/full_factorial_postfix/crossval_equivalence.csv` and the current paper/supplement.
+
 **Date:** 2026-02-13
 **Analyst:** RA (automated)
 

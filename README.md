@@ -1,6 +1,6 @@
 # Friction-MARL
 
-**A multi-agent reinforcement learning test of the consent-friction functional**
+**An artifact-control battery for mixed-motive multi-agent reinforcement learning**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
@@ -8,7 +8,7 @@ Code and evidence repository for *Four Ways to Manufacture a Coordination Findin
 
 ## Overview
 
-A four-agent resource-allocation MARL testbed for the coordination-friction functional proposed in the Axiom of Consent:
+A four-agent resource-allocation MARL testbed originally designed to evaluate the following candidate coordination-friction ratio:
 
 ```
 F = sigma * (1 + epsilon) / (1 + alpha)

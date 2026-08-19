@@ -1,3 +1,7 @@
+HISTORICAL FAILURE-PROVENANCE ARTIFACT — SUPERSEDED
+This output analyzes the legacy sign-blind alpha sampler. Its U-shape is not evidence that genuine
+opposition improves coordination, and its construct-level verdict is withdrawn. Retained for
+auditability; use results/adversarial_rerun, results/reviewer3_followup, and the current paper.
 ================================================================================
 DELIVERABLE B: VDN (centralized) vs IQL (independent) -- U-shape over alpha
 modes=['iql', 'vdn'] alphas=[np.float64(-0.8), np.float64(-0.4), np.float64(0.0), np.float64(0.4), np.float64(0.8)] sigmas=[np.float64(0.2), np.float64(0.6), np.float64(1.0)] reps=30-30

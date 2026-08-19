@@ -1,5 +1,11 @@
 # MARL 5x5x5 Factorial Experiment — Analysis Report
 
+> **HISTORICAL FAILURE-PROVENANCE ARTIFACT — SUPERSEDED.** This is the original sign-blind,
+> pre-fix factorial report. Its parameter labels and construct interpretations are not current:
+> the sampler did not deliver negative target correlation, raw sigma includes reward scaling, and
+> the implementation was later repaired. Retain the numerical record, but use
+> `results/README.md`, the post-fix results, and the current paper for inference.
+
 **Generated:** 2026-02-13 18:07
 **Data:** 3,750 observations (125 conditions x 30 replications)
 **Design:** alpha (friction) x sigma (noise) x epsilon (exploration), full factorial

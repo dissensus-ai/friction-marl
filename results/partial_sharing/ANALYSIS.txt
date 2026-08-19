@@ -1,3 +1,7 @@
+HISTORICAL LEGACY-SUPPORT, UNPAIRED OUTPUT — SUPERSEDED FOR THE CURRENT VERDICT
+The endpoint labels and “middle levels can be trusted” sentence below exceed this old smoke gate.
+They do not establish endpoint equivalence or validate the paired frozen-policy series. Use
+partial_sharing/FINDINGS.md and reviewer3_followup/ for the current scoped interpretation.
 ######################################################################################
 # PARTIAL-SHARING CONTROL -- does the alignment-gap slope scale with overlap w?
 ######################################################################################

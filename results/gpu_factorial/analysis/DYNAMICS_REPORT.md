@@ -1,5 +1,11 @@
 # Learning Dynamics & Policy Convergence Report
 
+> **HISTORICAL FAILURE-PROVENANCE ARTIFACT — SUPERSEDED.** This report interprets the original
+> sign-blind, pre-fix factorial. Its claims about cooperative/adversarial structure, AoC
+> confirmation, friction, and noise were withdrawn after the signed and post-fix controls. Retain
+> it only to audit how the misleading inference was produced; see `results/README.md` for the
+> current evidence map.
+
 **MARL 5x5x5 Factorial Experiment — GPU Run**
 Generated: 2026-02-13
 
