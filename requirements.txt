@@ -4,10 +4,10 @@
 # ROCm 6.3), where torch reports itself as 2.9.1+rocm6.3. The local version tag is
 # left off below so the file installs anywhere; pick the index that matches your
 # hardware. The results are not ROCm-specific, but the recorded environment is.
-#   ROCm:  pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/rocm6.3
-#   CUDA:  pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cu124
-#   CPU:   pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu
-torch==2.9.1
+#   ROCm:  pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/rocm6.3
+#   CUDA:  pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu124
+#   CPU:   pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
+torch==2.13.0
 gymnasium==1.2.3
 numpy==2.3.5
 pandas==2.3.3
