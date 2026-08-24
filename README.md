@@ -178,11 +178,13 @@ friction-marl/
 ## Data
 
 The public Zenodo concept DOI is [10.5281/zenodo.20636467](https://doi.org/10.5281/zenodo.20636467).
-Published v2 includes the February factorial and June control battery, but not the post-fix
-factorials or the August reviewer follow-up. Those additions remain unpublished until a checked
-v3 record is published. Files under `release/zenodo-v3/` are local release-candidate artifacts,
-not a public record; their embedded source commit, inventories and `SHA256SUMS` must all be checked
-before use. The concept DOI resolves only to the latest version actually published by Zenodo.
+Version 3.0.0 is published at the immutable record DOI
+[10.5281/zenodo.22004215](https://doi.org/10.5281/zenodo.22004215). It adds the post-fix factorials,
+August reviewer follow-up, frozen-policy evaluations, feasible-centred controls, dynamic oracle,
+paired partial sharing, signed-noise crossing and zero-bias diagnostic to the February and June
+record. The seven public files match the checked payload under `release/zenodo-v3/`; its embedded
+source commit, inventories and `SHA256SUMS` define the release boundary. The concept DOI resolves
+to the latest version actually published by Zenodo.
 
 ## Related Papers
 

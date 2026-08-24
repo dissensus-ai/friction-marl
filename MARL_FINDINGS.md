@@ -39,7 +39,8 @@ the residual frozen-policy component about 37–46%. In a reduced feasible-centr
 observation noise raises the mean clean frozen gap, but its penalty grows toward cooperation
 (`rho x epsilon = +1.559` IQL / `+.962` VDN), opposite the proposed ratio's cross-effect; the
 penalty is not detected in most opposed cells. All reviewer follow-ups are exploratory and
-remain unpublished until a checked v3 record is actually published.
+are archived in the checked Zenodo v3.0.0 release,
+[10.5281/zenodo.22004215](https://doi.org/10.5281/zenodo.22004215).
 
 ---
 
